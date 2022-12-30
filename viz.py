@@ -77,6 +77,7 @@ class SmartWatchVisualizer:
         return
 
     def threaded_update_loading_file_label(self, text):
+        text = 'Loading file...\n' + text
         self.lbl_loading_file.set_text(text)
         return
 
@@ -89,6 +90,8 @@ class SmartWatchVisualizer:
     def draw_canvas(self):
         self.ax.cla()
         self.data.plot_gps(self.ax)
+        self.ax.set_axis_off()
+        self.canvas.draw()
         return
 
     def on_key_press_event(self, widget, event):
@@ -182,18 +185,19 @@ class SmartWatchVisualizer:
 
         self.spinner = Gtk.Spinner()
         self.lbl_loading_file = Gtk.Label(label='Loading file...')
+        self.lbl_loading_file.set_justify(Gtk.Justification.LEFT)
 
         self.window.add(self.vbox1)
         self.vbox1.pack_start(self.menu_bar, False, True, 0)
         self.vbox1.pack_start(self.hbox1, False, True, 0)
         self.vbox1.pack_start(self.eventbox, False, True, 0)
         self.vbox1.pack_start(self.spinner, True, True, 0)
-        self.vbox1.pack_start(self.lbl_loading_file, False, True, 0)
+        self.vbox1.pack_start(self.lbl_loading_file, True, True, 0)
 
         # num_rows, num_cols = 2, 20
         # data = random((num_rows, num_cols))
         # Matplotlib stuff
-        fig = Figure(figsize=(6, 4))
+        fig = Figure(figsize=(30, 30))
 
         self.canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
         self.vbox1.pack_start(self.canvas, True, True, 0)

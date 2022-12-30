@@ -23,7 +23,7 @@ class WatchData:
         self.index = 0
         self.data_size = 0
         self.gps_data = list()
-        self.gps_window = 10
+        self.gps_window = 20
         self.lon_min = 0.0
         self.lon_max = 0.0
         self.lat_min = 0.0
@@ -86,11 +86,18 @@ class WatchData:
                               crs="EPSG:4326",
                               geometry=gpd.points_from_xy(df['Longitude'], df['Latitude']))
         self.geo_data_frame = df.to_crs(epsg=3857)
+        print(self.geo_data_frame.info())
+        print(self.geo_data_frame.head())
         return
 
     def plot_gps(self, axis):
         if self.geo_data_frame is not None:
+            axis.set_axis_off()
             self.geo_data_frame.plot(ax=axis, edgecolor='0.2')
+            minx, miny, maxx, maxy = self.geo_data_frame.total_bounds
+            print(self.geo_data_frame.total_bounds)
+            axis.set_xlim(minx, maxx)
+            axis.set_ylim(miny, maxy)
             cx.add_basemap(ax=axis)
         return
 
@@ -106,10 +113,8 @@ class WatchData:
                     continue
                 if row['latitude'] != cur_lat or row['longitude'] != cur_lon:
                     if len(self.gps_data) > 0:
-                        msg = '{}  {}  {}  {}'.format(self.gps_data[-1].count,
-                                                      str(self.gps_data[-1].last_stamp),
-                                                      self.gps_data[-1].longitude,
-                                                      self.gps_data[-1].latitude)
+                        msg = '{}  {}'.format(self.gps_data[-1].count,
+                                              str(self.gps_data[-1].last_stamp))
                         print(msg)
                         if update_callback is not None:
                             update_callback(msg)
