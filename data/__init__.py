@@ -7,9 +7,10 @@ import osmnx as ox
 import pandas as pd
 import geopandas as gpd
 import contextily as cx
-from shapely.geometry import Point
+from shapely.geometry import Point, LineString
 from .gps import GPSData
 import matplotlib.pyplot as plt
+
 plt.style.use('ggplot')
 plt.rcParams.update({'font.size': 16,
                      'axes.labelweight': 'bold',
@@ -23,7 +24,7 @@ class WatchData:
         self.index = 0
         self.data_size = 0
         self.gps_data = list()
-        self.gps_window = 20
+        self.gps_window = 10
         self.lon_min = 0.0
         self.lon_max = 0.0
         self.lat_min = 0.0
@@ -32,7 +33,7 @@ class WatchData:
         return
 
     def increase_window_size(self) -> bool:
-        action =  False
+        action = False
         if (self.index + self.gps_window + 1) < self.data_size:
             self.gps_window += 1
             self.update_gps_data_frame()
@@ -94,11 +95,40 @@ class WatchData:
         if self.geo_data_frame is not None:
             axis.set_axis_off()
             self.geo_data_frame.plot(ax=axis, edgecolor='0.2')
+            if self.gps_window > 1:
+                self.geo_data_frame['LINE'] = [(LineString([[a.x, a.y], [b.x, b.y]])
+                                                if b is not None else None)
+                                               for (a, b) in zip(self.geo_data_frame.geometry,
+                                                                 self.geo_data_frame.geometry.shift(
+                                                                     -1, axis=0))]
+                geo_line = gpd.GeoDataFrame(self.geo_data_frame, geometry='LINE')
+                geo_line.plot(ax=axis, edgecolor='green', lw=1)
             minx, miny, maxx, maxy = self.geo_data_frame.total_bounds
-            print(self.geo_data_frame.total_bounds)
+            meanx = (minx + maxx) / 2.0
+            meany = (miny + maxy) / 2.0
+            diffx = (maxx - minx) * 1.1
+            diffy = (maxy - miny) * 1.1
+            print('x ', minx, maxx, diffx)
+            print('y ', miny, maxy, diffy)
+            if abs(diffx) < 1000.0:
+                diffx = 1000.0
+            if abs(diffy) < 1000.0:
+                diffy = 1000.0
+            if diffx < diffy:
+                diffx = diffy
+            else:
+                diffy = diffx
+            minx = meanx - (diffx / 2.0)
+            maxx = meanx + (diffx / 2.0)
+            # miny = miny - (0.1 * diffy)
+            # maxy = maxy + (0.1 * diffy)
+            miny = meany - (diffy / 2.0)
+            maxy = meany + (diffy / 2.0)
+            print('nx ', minx, maxx, diffx)
+            print('ny ', miny, maxy, diffy)
             axis.set_xlim(minx, maxx)
             axis.set_ylim(miny, maxy)
-            cx.add_basemap(ax=axis)
+            cx.add_basemap(ax=axis, source=cx.providers.OpenStreetMap.Mapnik)
         return
 
     def load_data(self, filename: str, update_callback=None, done_callback=None):
@@ -140,4 +170,3 @@ class WatchData:
         if done_callback is not None:
             done_callback()
         return
-
