@@ -3,7 +3,6 @@ import copy
 import datetime
 import os
 import numpy as np
-import osmnx as ox
 import pandas as pd
 import geopandas as gpd
 import contextily as cx
