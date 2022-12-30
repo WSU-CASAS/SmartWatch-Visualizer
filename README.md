@@ -10,5 +10,6 @@ pamac install python-pygobject
 pamac install python-geopandas
 pamac install python-networkx
 pamac install python-matplotlib
+pamac install python-contextily
 pip3.10 install osmnx
 ```
