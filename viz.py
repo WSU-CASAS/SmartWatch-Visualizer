@@ -95,16 +95,20 @@ class SmartWatchVisualizer:
         print('key press:  {}'.format(event.string))
         if event.keyval == 65361:       # Left
             print('LEFT')
-            self.data.step_backward()
-            GLib.idle_add(self.draw_canvas)
+            if self.data.step_backward():
+                GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65363:     # Right
             print('RIGHT')
-            self.data.step_forward()
-            GLib.idle_add(self.draw_canvas)
+            if self.data.step_forward():
+                GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65362:     # Up
             print('UP')
+            if self.data.increase_window_size():
+                GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65364:     # Down
             print('DOWN')
+            if self.data.decrease_window_size():
+                GLib.idle_add(self.draw_canvas)
         return
 
     def update_visible_state(self):
@@ -194,6 +198,7 @@ class SmartWatchVisualizer:
         self.canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
         self.vbox1.pack_start(self.canvas, True, True, 0)
         self.ax = fig.add_subplot()
+        self.ax.set_axis_off()
         # self.line, = ax.plot(data[0, :], 'go')  # plot the first row
 
         self.window.connect('destroy', Gtk.main_quit)

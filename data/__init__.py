@@ -31,17 +31,37 @@ class WatchData:
         self.geo_data_frame = None
         return
 
-    def step_forward(self):
+    def increase_window_size(self) -> bool:
+        action =  False
+        if (self.index + self.gps_window + 1) < self.data_size:
+            self.gps_window += 1
+            self.update_gps_data_frame()
+            action = True
+        return action
+
+    def decrease_window_size(self) -> bool:
+        action = False
+        if (self.gps_window - 1) >= 1:
+            self.gps_window -= 1
+            self.update_gps_data_frame()
+            action = True
+        return action
+
+    def step_forward(self) -> bool:
+        action = False
         if (self.index + self.gps_window + 1) < self.data_size:
             self.index += 1
             self.update_gps_data_frame()
-        return
+            action = True
+        return action
 
-    def step_backward(self):
+    def step_backward(self) -> bool:
+        action = False
         if (self.index - 1) >= 0:
             self.index -= 1
             self.update_gps_data_frame()
-        return
+            action = True
+        return action
 
     def goto_index(self, clicked_float: float):
         if 0.0 <= clicked_float <= 1.0:
