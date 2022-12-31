@@ -86,10 +86,20 @@ class SmartWatchVisualizer:
         return
 
     def draw_canvas(self):
+        if self.data.has_data:
+            self.progress.set_fraction(float(self.data.index)/float(self.data.data_size))
         self.ax.cla()
         self.data.plot_gps(self.ax)
         self.ax.set_axis_off()
         self.canvas.draw()
+        return
+
+    def on_button_pressed_progress(self, widget, event):
+        if self.data.has_data:
+            rec = self.eventbox.get_allocated_width()
+            f = float(event.x) / float(rec)
+            self.data.goto_index(clicked_float=f)
+            self.draw_canvas()
         return
 
     def on_key_press_event(self, widget, event):
@@ -206,6 +216,7 @@ class SmartWatchVisualizer:
         self.window.connect('destroy', Gtk.main_quit)
         self.window.connect('key-press-event', self.on_key_press_event)
         self.open_file_item.connect('activate', self.on_file_open_clicked)
+        self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
         self.window.show_all()
         self.update_visible_state()
         return

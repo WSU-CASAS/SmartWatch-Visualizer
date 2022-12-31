@@ -131,6 +131,12 @@ class WatchData:
         return
 
     def load_data(self, filename: str, update_callback=None, done_callback=None):
+        del self.gps_data
+        self.gps_data = list()
+        self.has_data = False
+        self.index = 0
+        self.data_size = 0
+        self.gps_window = 10
         with MobileData(filename, 'r') as mdata:
             cur_lat = -1.0
             cur_lon = -1.0
