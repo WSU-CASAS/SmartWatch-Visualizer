@@ -30,9 +30,6 @@ from matplotlib.figure import Figure
 from data import WatchData
 
 
-GObject.threads_init()
-
-
 class SmartWatchVisualizer:
     def on_file_open_clicked(self, widget):
         filter = Gtk.FileFilter()
@@ -60,10 +57,11 @@ class SmartWatchVisualizer:
             thread.daemon = True
             thread.start()
 
+            self.STATE = 1
+            self.spinner.start()
+            self.update_visible_state()
+
         get_file.destroy()
-        self.STATE = 1
-        self.spinner.start()
-        self.update_visible_state()
         return
 
     def threaded_load_data(self, filename):
