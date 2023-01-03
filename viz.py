@@ -28,6 +28,7 @@ from matplotlib.backends.backend_gtk3agg import FigureCanvas  # or gtk3cairo.
 from numpy.random import random
 from matplotlib.figure import Figure
 from data import WatchData
+from data.config import VizConfig
 
 
 class SmartWatchVisualizer:
@@ -143,7 +144,14 @@ class SmartWatchVisualizer:
             self.canvas.show()
         return
 
+    def close_application(self, widget, event, data=None):
+        self.config.save_config()
+        Gtk.main_quit()
+        return
+
     def __init__(self):
+        self.config = VizConfig()
+        self.config.load_config(filename='config.conf')
         self.STATE = 0
         self.data = WatchData()
         # My main window.
@@ -213,7 +221,7 @@ class SmartWatchVisualizer:
         self.ax.set_axis_off()
         # self.line, = ax.plot(data[0, :], 'go')  # plot the first row
 
-        self.window.connect('destroy', Gtk.main_quit)
+        self.window.connect('destroy', self.close_application)
         self.window.connect('key-press-event', self.on_key_press_event)
         self.open_file_item.connect('activate', self.on_file_open_clicked)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
