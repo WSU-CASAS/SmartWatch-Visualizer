@@ -93,6 +93,7 @@ class SmartWatchVisualizer:
         self.data.plot_gps(self.ax)
         self.ax.set_axis_off()
         self.canvas.draw()
+        self.canvas.draw_idle()
         return
 
     def on_button_pressed_progress(self, widget, event):
@@ -121,6 +122,14 @@ class SmartWatchVisualizer:
             print('DOWN')
             if self.data.decrease_window_size():
                 GLib.idle_add(self.draw_canvas)
+        elif event.string == self.config.gps_invalid:
+            print('b')
+            self.data.mark_window_invalid()
+            GLib.idle_add(self.draw_canvas)
+        elif event.string == self.config.gps_valid:
+            print('g')
+            self.data.mark_window_valid()
+            GLib.idle_add(self.draw_canvas)
         return
 
     def update_visible_state(self):
@@ -144,7 +153,7 @@ class SmartWatchVisualizer:
             self.canvas.show()
         return
 
-    def close_application(self, widget, event, data=None):
+    def close_application(self, *args):
         self.config.save_config()
         Gtk.main_quit()
         return

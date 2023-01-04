@@ -33,6 +33,7 @@ plt.rcParams.update({'font.size': 16,
                      'axes.labelweight': 'bold',
                      'figure.figsize': (6, 6),
                      'axes.edgecolor': '0.2'})
+cx.set_cache_dir(path='data/contextily_cache')
 
 
 class WatchData:
@@ -47,6 +48,8 @@ class WatchData:
         self.lat_min = 0.0
         self.lat_max = 0.0
         self.geo_data_frame = None
+        self.colors = list()
+        self.sizes = list()
         return
 
     def increase_window_size(self) -> bool:
@@ -89,6 +92,10 @@ class WatchData:
 
     def update_gps_data_frame(self):
         del self.geo_data_frame
+        del self.colors
+        del self.sizes
+        self.colors = list()
+        self.sizes = list()
         my_points = dict({'point_id': list(),
                           'Latitude': list(),
                           'Longitude': list()})
@@ -97,7 +104,13 @@ class WatchData:
             my_points['point_id'].append(j)
             my_points['Latitude'].append(self.gps_data[i].latitude)
             my_points['Longitude'].append(self.gps_data[i].longitude)
+            if self.gps_data[i].is_valid:
+                self.colors.append('g')
+            else:
+                self.colors.append('r')
+            self.sizes.append(20.0)
             j += 1
+        self.sizes[-1] = 50.0
 
         df = pd.DataFrame(my_points)
         df = gpd.GeoDataFrame(df,
@@ -108,10 +121,21 @@ class WatchData:
         print(self.geo_data_frame.head())
         return
 
+    def mark_window_invalid(self):
+        for i in range(self.index, self.index + self.gps_window):
+            self.gps_data[i].is_valid = False
+        self.update_gps_data_frame()
+        return
+
+    def mark_window_valid(self):
+        for i in range(self.index, self.index + self.gps_window):
+            self.gps_data[i].is_valid = True
+        self.update_gps_data_frame()
+        return
+
     def plot_gps(self, axis):
         if self.geo_data_frame is not None:
             axis.set_axis_off()
-            self.geo_data_frame.plot(ax=axis, edgecolor='0.2')
             if self.gps_window > 1:
                 self.geo_data_frame['LINE'] = [(LineString([[a.x, a.y], [b.x, b.y]])
                                                 if b is not None else None)
@@ -119,7 +143,8 @@ class WatchData:
                                                                  self.geo_data_frame.geometry.shift(
                                                                      -1, axis=0))]
                 geo_line = gpd.GeoDataFrame(self.geo_data_frame, geometry='LINE')
-                geo_line.plot(ax=axis, edgecolor='green', lw=1)
+                geo_line.plot(ax=axis, edgecolor='black', lw=0.2)
+            self.geo_data_frame.plot(ax=axis, color=self.colors, markersize=self.sizes)
             minx, miny, maxx, maxy = self.geo_data_frame.total_bounds
             meanx = (minx + maxx) / 2.0
             meany = (miny + maxy) / 2.0

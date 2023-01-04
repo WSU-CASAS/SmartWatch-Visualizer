@@ -24,14 +24,16 @@ class VizConfig:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.filename = None
+        self.gps_valid = 'g'
+        self.gps_invalid = 'b'
         return
 
     def set(self, group: str, item: str, value: str):
         self.config.set(group, item, value)
         return
 
-    def get(self, group: str, item: str) -> str:
-        value = None
+    def get(self, group: str, item: str, default: str = None) -> str:
+        value = default
         if self.config.has_option(group, item):
             value = self.config.get(group, item)
         return value
@@ -41,12 +43,14 @@ class VizConfig:
             if os.path.isfile(filename):
                 self.filename = filename
                 self.config.read(self.filename)
+        self.gps_valid = self.get(group='gps', item='valid', default=self.gps_valid)
+        self.gps_invalid = self.get(group='gps', item='invalid', default=self.gps_invalid)
         return
 
     def save_config(self, filename: str = None):
         if filename is not None:
             self.filename = filename
-        configfile = open(self.filename, 'wb')
+        configfile = open(self.filename, 'w')
         self.config.write(configfile)
         configfile.close()
         return

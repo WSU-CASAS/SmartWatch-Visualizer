@@ -1,3 +1,6 @@
+# Contextily cache folder
+data/contextily_cache/
+
 # Pycharm folder
 .idea/
 
