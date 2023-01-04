@@ -214,6 +214,7 @@ class WatchData:
         if len(self.gps_data) > 0:
             self.data_size = len(self.gps_data)
             self.has_data = True
+            self.update_gps_data_frame()
 
         if done_callback is not None:
             done_callback()

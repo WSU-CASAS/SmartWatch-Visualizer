@@ -92,8 +92,9 @@ class SmartWatchVisualizer:
         self.ax.cla()
         self.data.plot_gps(self.ax)
         self.ax.set_axis_off()
-        self.canvas.draw()
+        # self.canvas.draw()
         self.canvas.draw_idle()
+        self.canvas.flush_events()
         return
 
     def on_button_pressed_progress(self, widget, event):
