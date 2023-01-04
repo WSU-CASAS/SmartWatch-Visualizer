@@ -152,10 +152,10 @@ class WatchData:
             diffy = (maxy - miny) * 1.1
             print('x ', minx, maxx, diffx)
             print('y ', miny, maxy, diffy)
-            if abs(diffx) < 1000.0:
-                diffx = 1000.0
-            if abs(diffy) < 1000.0:
-                diffy = 1000.0
+            if abs(diffx) < 400.0:
+                diffx = 400.0
+            if abs(diffy) < 400.0:
+                diffy = 400.0
             if diffx < diffy:
                 diffx = diffy
             else:
