@@ -20,14 +20,14 @@ import copy
 import datetime
 
 
-class GPSData:
-    def __init__(self, longitude: float, latitude: float, start_stamp: datetime.datetime,
-                 last_stamp: datetime.datetime, count: int, is_valid: bool):
-        self.longitude = longitude
-        self.latitude = latitude
-        self.start_stamp = copy.deepcopy(start_stamp)
-        self.last_stamp = copy.deepcopy(last_stamp)
-        self.count = count
-        self.is_valid = is_valid
+class FullSensorData:
+    def __init__(self, data: dict):
+        """
+        stamp,yaw,pitch,roll,rotation_rate_x,rotation_rate_y,rotation_rate_z,user_acceleration_x,
+            user_acceleration_y,user_acceleration_z,latitude,longitude,altitude,course,speed,
+            horizontal_accuracy,vertical_accuracy,battery_state,user_activity_label
+        dt,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s
+        """
+
         return
 

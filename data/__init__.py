@@ -12,7 +12,7 @@
 # **
 # ** All rights reserved
 # ** Modification, distribution, and sale of this work is prohibited without
-# **  permission from Washington State # University
+# **  permission from Washington State University
 # **
 # ** Contact: Brian L. Thomas (bthomas1@wsu.edu)
 # *****************************************************************************#

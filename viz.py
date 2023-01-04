@@ -13,7 +13,7 @@
 # **
 # ** All rights reserved
 # ** Modification, distribution, and sale of this work is prohibited without
-# **  permission from Washington State # University
+# **  permission from Washington State University
 # **
 # ** Contact: Brian L. Thomas (bthomas1@wsu.edu)
 # *****************************************************************************#
@@ -58,6 +58,7 @@ class SmartWatchVisualizer:
             thread.daemon = True
             thread.start()
 
+            self.set_status_message(message='Loading file...  This may take some time.')
             self.STATE = 1
             self.spinner.start()
             self.update_visible_state()
@@ -82,11 +83,25 @@ class SmartWatchVisualizer:
 
     def callback_loading_file_done(self):
         self.STATE = 2
+        GLib.idle_add(self.set_status_message, 'Ready')
         GLib.idle_add(self.update_visible_state)
         GLib.idle_add(self.draw_canvas)
         return
 
+    def set_status_message(self, message: str, context_id: int = 0):
+        self.status_bar.push(context_id, message)
+        return
+
+    def pop_status_message(self, context_id: int = 0):
+        self.status_bar.pop(context_id)
+        return
+
     def draw_canvas(self):
+        self.set_status_message(message='Loading image...', context_id=1)
+        GLib.idle_add(self.draw_canvas_next)
+        return
+
+    def draw_canvas_next(self):
         if self.data.has_data:
             self.progress.set_fraction(float(self.data.index)/float(self.data.data_size))
         self.ax.cla()
@@ -95,6 +110,7 @@ class SmartWatchVisualizer:
         # self.canvas.draw()
         self.canvas.draw_idle()
         self.canvas.flush_events()
+        self.pop_status_message(context_id=1)
         return
 
     def on_button_pressed_progress(self, widget, event):
@@ -140,18 +156,27 @@ class SmartWatchVisualizer:
             self.spinner.show()
             self.lbl_loading_file.hide()
             self.canvas.hide()
+            self.open_file_item.set_sensitive(True)
+            self.save_item.set_sensitive(False)
+            self.save_as_item.set_sensitive(False)
         elif self.STATE == 1:
             self.hbox1.hide()
             self.eventbox.hide()
             self.spinner.show()
             self.lbl_loading_file.show()
             self.canvas.hide()
+            self.open_file_item.set_sensitive(False)
+            self.save_item.set_sensitive(False)
+            self.save_as_item.set_sensitive(False)
         elif self.STATE == 2:
             self.hbox1.show()
             self.eventbox.show()
             self.spinner.hide()
             self.lbl_loading_file.hide()
             self.canvas.show()
+            self.open_file_item.set_sensitive(True)
+            self.save_item.set_sensitive(True)
+            self.save_as_item.set_sensitive(True)
         return
 
     def close_application(self, *args):
@@ -181,11 +206,14 @@ class SmartWatchVisualizer:
         self.file_item = Gtk.MenuItem(label='File')
         self.open_file_item = Gtk.MenuItem(label='Open File')
         self.open_file_item.set_sensitive(True)
+        self.save_item = Gtk.MenuItem(label='Save')
+        self.save_item.set_sensitive(False)
         self.save_as_item = Gtk.MenuItem(label='Save As')
         self.save_as_item.set_sensitive(False)
 
         self.file_menu.append(self.open_file_item)
         self.file_menu.append(Gtk.SeparatorMenuItem())
+        self.file_menu.append(self.save_item)
         self.file_menu.append(self.save_as_item)
 
         self.file_item.set_submenu(self.file_menu)
@@ -230,6 +258,9 @@ class SmartWatchVisualizer:
         self.ax = fig.add_subplot()
         self.ax.set_axis_off()
         # self.line, = ax.plot(data[0, :], 'go')  # plot the first row
+
+        self.status_bar = Gtk.Statusbar()
+        self.vbox1.pack_start(self.status_bar, False, True, 0)
 
         self.window.connect('destroy', self.close_application)
         self.window.connect('key-press-event', self.on_key_press_event)
