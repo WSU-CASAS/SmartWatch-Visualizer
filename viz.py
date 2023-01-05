@@ -30,13 +30,44 @@ from matplotlib.figure import Figure
 from data import WatchData
 from data.config import VizConfig
 
+MODE_FIRST_WINDOW = 0
+MODE_OPENING_FILE = 1
+MODE_GPS_VISUALIZATION = 2
+MODE_SAVING_FILE = 3
+MODE_SENSOR_VISUALIZATION = 4
+
 
 class SmartWatchVisualizer:
+    def on_file_save_clicked(self, widget):
+        print('Saving to file: {}'.format(self.opened_filename))
+        thread = threading.Thread(target=self.threaded_save_data, args=(self.opened_filename,))
+        thread.daemon = True
+
+        self.set_status_message(message='Saving file...  This may take some time.')
+        self.STATE = MODE_SAVING_FILE
+        self.update_visible_state()
+
+        thread.start()
+        return
+
+    def threaded_save_data(self, filename):
+        self.data.save_data(filename=filename,
+                            update_callback=self.threaded_callback_update_loading_label,
+                            done_callback=self.callback_saving_file_done)
+        return
+
+    def callback_saving_file_done(self):
+        self.STATE = MODE_GPS_VISUALIZATION
+        GLib.idle_add(self.set_status_message, 'Ready')
+        GLib.idle_add(self.update_visible_state)
+        GLib.idle_add(self.draw_canvas)
+        return
+
     def on_file_open_clicked(self, widget):
-        filter = Gtk.FileFilter()
-        filter.add_pattern('*.data')
-        filter.add_pattern('*.csv')
-        filter.set_name('Data Files')
+        ffilter = Gtk.FileFilter()
+        ffilter.add_pattern('*.data')
+        ffilter.add_pattern('*.csv')
+        ffilter.set_name('Data Files')
         filterall = Gtk.FileFilter()
         filterall.add_pattern('*')
         filterall.set_name('All Files')
@@ -47,7 +78,7 @@ class SmartWatchVisualizer:
                              Gtk.ResponseType.CANCEL,
                              Gtk.STOCK_OPEN,
                              Gtk.ResponseType.OK)
-        get_file.add_filter(filter=filter)
+        get_file.add_filter(filter=ffilter)
         get_file.add_filter(filter=filterall)
 
         response = get_file.run()
@@ -56,12 +87,13 @@ class SmartWatchVisualizer:
             print('file selected!  {}'.format(file_path))
             thread = threading.Thread(target=self.threaded_load_data, args=(file_path,))
             thread.daemon = True
-            thread.start()
 
             self.set_status_message(message='Loading file...  This may take some time.')
-            self.STATE = 1
-            self.spinner.start()
+            self.STATE = MODE_OPENING_FILE
             self.update_visible_state()
+            self.opened_filename = file_path
+
+            thread.start()
 
         get_file.destroy()
         return
@@ -77,12 +109,11 @@ class SmartWatchVisualizer:
         return
 
     def threaded_update_loading_file_label(self, text):
-        text = 'Loading file...\n' + text
         self.lbl_loading_file.set_text(text)
         return
 
     def callback_loading_file_done(self):
-        self.STATE = 2
+        self.STATE = MODE_GPS_VISUALIZATION
         GLib.idle_add(self.set_status_message, 'Ready')
         GLib.idle_add(self.set_all_lbl_progress)
         GLib.idle_add(self.update_visible_state)
@@ -171,33 +202,46 @@ class SmartWatchVisualizer:
         return
 
     def update_visible_state(self):
-        if self.STATE == 0:
+        if self.STATE == MODE_FIRST_WINDOW:
             self.hbox1.hide()
             self.eventbox.hide()
+            self.spinner.stop()
             self.spinner.show()
             self.lbl_loading_file.hide()
             self.canvas.hide()
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
-        elif self.STATE == 1:
+        elif self.STATE == MODE_OPENING_FILE:
             self.hbox1.hide()
             self.eventbox.hide()
+            self.spinner.start()
             self.spinner.show()
             self.lbl_loading_file.show()
             self.canvas.hide()
             self.open_file_item.set_sensitive(False)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
-        elif self.STATE == 2:
+        elif self.STATE == MODE_GPS_VISUALIZATION:
             self.hbox1.show()
             self.eventbox.show()
+            self.spinner.stop()
             self.spinner.hide()
             self.lbl_loading_file.hide()
             self.canvas.show()
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(True)
             self.save_as_item.set_sensitive(True)
+        elif self.STATE == MODE_SAVING_FILE:
+            self.hbox1.hide()
+            self.eventbox.hide()
+            self.spinner.start()
+            self.spinner.show()
+            self.lbl_loading_file.show()
+            self.canvas.hide()
+            self.open_file_item.set_sensitive(False)
+            self.save_item.set_sensitive(False)
+            self.save_as_item.set_sensitive(False)
         return
 
     def close_application(self, *args):
@@ -208,8 +252,9 @@ class SmartWatchVisualizer:
     def __init__(self):
         self.config = VizConfig()
         self.config.load_config(filename='config.conf')
-        self.STATE = 0
+        self.STATE = MODE_FIRST_WINDOW
         self.data = WatchData()
+        self.opened_filename = None
         # My main window.
         self.window = Gtk.ApplicationWindow(title='Smart Watch Visualizer')
         self.window.set_default_size(width=600, height=400)
@@ -286,6 +331,7 @@ class SmartWatchVisualizer:
         self.window.connect('destroy', self.close_application)
         self.window.connect('key-press-event', self.on_key_press_event)
         self.open_file_item.connect('activate', self.on_file_open_clicked)
+        self.save_item.connect('activate', self.on_file_save_clicked)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
         self.window.show_all()
         self.update_visible_state()
