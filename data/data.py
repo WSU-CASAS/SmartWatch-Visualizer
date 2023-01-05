@@ -18,15 +18,16 @@
 # *****************************************************************************#
 import copy
 import datetime
+from collections import OrderedDict
 
 
 class FullSensorData:
-    def __init__(self, data: dict):
+    def __init__(self, fields: OrderedDict, data: dict):
         """
         stamp,yaw,pitch,roll,rotation_rate_x,rotation_rate_y,rotation_rate_z,user_acceleration_x,
             user_acceleration_y,user_acceleration_z,latitude,longitude,altitude,course,speed,
-            horizontal_accuracy,vertical_accuracy,battery_state,user_activity_label
-        dt,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s
+            horizontal_accuracy,vertical_accuracy,battery_state,user_activity_label,is_gps_valid
+        dt,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s,s
         """
 
         return

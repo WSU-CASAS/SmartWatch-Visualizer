@@ -35,8 +35,18 @@ plt.rcParams.update({'font.size': 16,
                      'axes.edgecolor': '0.2'})
 cx.set_cache_dir(path='data/contextily_cache')
 
+MODE_GPS = 'gps'
+MODE_SENSORS = 'sensors'
+DEFAULT_IS_VALID = True
+GPS_VALID_FIELD = 'is_gps_valid'
+GPS_VALID_DICT = dict({'0': False,
+                       False: '0',
+                       '1': True,
+                       True: '1'})
+LABEL_FIELD = 'user_activity_label'
 
-class WatchData:
+
+class WatchGPSData:
     def __init__(self):
         self.has_data = False
         self.index = 0
@@ -50,7 +60,26 @@ class WatchData:
         self.geo_data_frame = None
         self.colors = list()
         self.sizes = list()
+        self.fields = None
         return
+
+    def get_first_stamp(self) -> str:
+        msg = '...'
+        if self.has_data:
+            msg = str(self.gps_data[self.gps_window - 1].last_stamp)
+        return msg
+
+    def get_current_stamp(self) -> str:
+        msg = '...'
+        if self.has_data:
+            msg = str(self.gps_data[self.index + self.gps_window - 1].last_stamp)
+        return msg
+
+    def get_last_stamp(self) -> str:
+        msg = '...'
+        if self.has_data:
+            msg = str(self.gps_data[-1].last_stamp)
+        return msg
 
     def increase_window_size(self) -> bool:
         action = False
@@ -100,6 +129,7 @@ class WatchData:
                           'Latitude': list(),
                           'Longitude': list()})
         j = 0
+        last_stamp = ''
         for i in range(self.index, self.index + self.gps_window):
             my_points['point_id'].append(j)
             my_points['Latitude'].append(self.gps_data[i].latitude)
@@ -109,8 +139,11 @@ class WatchData:
             else:
                 self.colors.append('r')
             self.sizes.append(20.0)
+            last_stamp = str(self.gps_data[i].last_stamp)
             j += 1
-        self.sizes[-1] = 50.0
+        self.sizes[-1] = 80.0
+
+        print('last stamp:  {}'.format(last_stamp))
 
         df = pd.DataFrame(my_points)
         df = gpd.GeoDataFrame(df,
@@ -152,10 +185,10 @@ class WatchData:
             diffy = (maxy - miny) * 1.1
             print('x ', minx, maxx, diffx)
             print('y ', miny, maxy, diffy)
-            if abs(diffx) < 400.0:
-                diffx = 400.0
-            if abs(diffy) < 400.0:
-                diffy = 400.0
+            if abs(diffx) < 200.0:
+                diffx = 200.0
+            if abs(diffy) < 200.0:
+                diffy = 200.0
             if diffx < diffy:
                 diffx = diffy
             else:
@@ -181,6 +214,15 @@ class WatchData:
         self.data_size = 0
         self.gps_window = 10
         with MobileData(filename, 'r') as mdata:
+            self.fields = copy.deepcopy(mdata.fields)
+            has_label = True
+            if LABEL_FIELD not in self.fields:
+                has_label = False
+                self.fields[LABEL_FIELD] = 's'
+            has_gps_valid = True
+            if GPS_VALID_FIELD not in self.fields:
+                has_gps_valid = False
+                self.fields[GPS_VALID_FIELD] = 's'
             cur_lat = -1.0
             cur_lon = -1.0
             first_stamp = None
@@ -201,12 +243,15 @@ class WatchData:
                     mlast_stamp = copy.deepcopy(row['stamp'])
                     cur_lat = row['latitude']
                     cur_lon = row['longitude']
+                    gps_valid = DEFAULT_IS_VALID
+                    if has_gps_valid:
+                        gps_valid = GPS_VALID_DICT[row[GPS_VALID_FIELD]]
                     self.gps_data.append(GPSData(longitude=cur_lon,
                                                  latitude=cur_lat,
                                                  start_stamp=first_stamp,
                                                  last_stamp=mlast_stamp,
                                                  count=mcount,
-                                                 is_valid=True))
+                                                 is_valid=gps_valid))
                 else:
                     self.gps_data[-1].count += 1
                     self.gps_data[-1].last_stamp = copy.deepcopy(row['stamp'])
@@ -219,3 +264,109 @@ class WatchData:
         if done_callback is not None:
             done_callback()
         return
+
+    def save_data(self, filename: str, update_callback=None, done_callback=None):
+        return
+
+
+class WatchData:
+    def __init__(self):
+        self.mode = MODE_GPS
+        self.gps_data = WatchGPSData()
+        self.fields = None
+        return
+
+    def has_data(self) -> bool:
+        value = False
+        if self.mode == MODE_GPS:
+            value = self.gps_data.has_data
+        return value
+
+    def index(self) -> int:
+        i = 0
+        if self.mode == MODE_GPS:
+            i = self.gps_data.index
+        return i
+
+    def data_size(self) -> int:
+        i = 20
+        if self.mode == MODE_GPS:
+            i = self.gps_data.data_size - self.gps_data.gps_window
+        return i
+
+    def get_first_stamp(self) -> str:
+        msg = '...'
+        if self.mode == MODE_GPS:
+            msg = self.gps_data.get_first_stamp()
+        return msg
+
+    def get_current_stamp(self) -> str:
+        msg = '...'
+        if self.mode == MODE_GPS:
+            msg = self.gps_data.get_current_stamp()
+        return msg
+
+    def get_last_stamp(self) -> str:
+        msg = '...'
+        if self.mode == MODE_GPS:
+            msg = self.gps_data.get_last_stamp()
+        return msg
+
+    def increase_window_size(self) -> bool:
+        action = False
+        if self.mode == MODE_GPS:
+            action = self.gps_data.increase_window_size()
+        return action
+
+    def decrease_window_size(self) -> bool:
+        action = False
+        if self.mode == MODE_GPS:
+            action = self.gps_data.decrease_window_size()
+        return action
+
+    def step_forward(self) -> bool:
+        action = False
+        if self.mode == MODE_GPS:
+            action = self.gps_data.step_forward()
+        return action
+
+    def step_backward(self) -> bool:
+        action = False
+        if self.mode == MODE_GPS:
+            action = self.gps_data.step_backward()
+        return action
+
+    def goto_index(self, clicked_float: float):
+        if self.mode == MODE_GPS:
+            self.gps_data.goto_index(clicked_float=clicked_float)
+        return
+
+    def mark_window_invalid(self):
+        if self.mode == MODE_GPS:
+            self.gps_data.mark_window_invalid()
+        return
+
+    def mark_window_valid(self):
+        if self.mode == MODE_GPS:
+            self.gps_data.mark_window_valid()
+        return
+
+    def plot_gps(self, axis):
+        if self.mode == MODE_GPS:
+            self.gps_data.plot_gps(axis=axis)
+        return
+
+    def load_data(self, filename: str, update_callback=None, done_callback=None):
+        if self.mode == MODE_GPS:
+            self.gps_data.load_data(filename=filename,
+                                    update_callback=update_callback,
+                                    done_callback=done_callback)
+        return
+
+    def save_data(self, filename: str, update_callback=None, done_callback=None):
+        if self.mode == MODE_GPS:
+            self.gps_data.save_data(filename=filename,
+                                    update_callback=update_callback,
+                                    done_callback=done_callback)
+        return
+

@@ -84,8 +84,24 @@ class SmartWatchVisualizer:
     def callback_loading_file_done(self):
         self.STATE = 2
         GLib.idle_add(self.set_status_message, 'Ready')
+        GLib.idle_add(self.set_all_lbl_progress)
         GLib.idle_add(self.update_visible_state)
         GLib.idle_add(self.draw_canvas)
+        return
+
+    def set_all_lbl_progress(self):
+        self.lbl_progress_start.set_text(self.data.get_first_stamp())
+        self.lbl_progress_current.set_text(self.data.get_current_stamp())
+        self.lbl_progress_end.set_text(self.data.get_last_stamp())
+        return
+
+    def set_first_current_lbl_progress(self):
+        self.lbl_progress_start.set_text(self.data.get_first_stamp())
+        self.lbl_progress_current.set_text(self.data.get_current_stamp())
+        return
+
+    def set_current_lbl_progress(self):
+        self.lbl_progress_current.set_text(self.data.get_current_stamp())
         return
 
     def set_status_message(self, message: str, context_id: int = 0):
@@ -102,8 +118,8 @@ class SmartWatchVisualizer:
         return
 
     def draw_canvas_next(self):
-        if self.data.has_data:
-            self.progress.set_fraction(float(self.data.index)/float(self.data.data_size))
+        if self.data.has_data():
+            self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
         self.ax.cla()
         self.data.plot_gps(self.ax)
         self.ax.set_axis_off()
@@ -114,10 +130,11 @@ class SmartWatchVisualizer:
         return
 
     def on_button_pressed_progress(self, widget, event):
-        if self.data.has_data:
+        if self.data.has_data():
             rec = self.eventbox.get_allocated_width()
             f = float(event.x) / float(rec)
             self.data.goto_index(clicked_float=f)
+            self.lbl_progress_current.set_text(self.data.get_current_stamp())
             self.draw_canvas()
         return
 
@@ -126,25 +143,29 @@ class SmartWatchVisualizer:
         if event.keyval == 65361:       # Left
             print('LEFT')
             if self.data.step_backward():
+                GLib.idle_add(self.set_current_lbl_progress)
                 GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65363:     # Right
             print('RIGHT')
             if self.data.step_forward():
+                GLib.idle_add(self.set_current_lbl_progress)
                 GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65362:     # Up
             print('UP')
             if self.data.increase_window_size():
+                GLib.idle_add(self.set_first_current_lbl_progress)
                 GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65364:     # Down
             print('DOWN')
             if self.data.decrease_window_size():
+                GLib.idle_add(self.set_first_current_lbl_progress)
                 GLib.idle_add(self.draw_canvas)
         elif event.string == self.config.gps_invalid:
-            print('b')
+            print(self.config.gps_invalid)
             self.data.mark_window_invalid()
             GLib.idle_add(self.draw_canvas)
         elif event.string == self.config.gps_valid:
-            print('g')
+            print(self.config.gps_valid)
             self.data.mark_window_valid()
             GLib.idle_add(self.draw_canvas)
         return
