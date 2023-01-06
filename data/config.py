@@ -26,6 +26,7 @@ class VizConfig:
         self.filename = None
         self.gps_valid = 'g'
         self.gps_invalid = 'b'
+        self.annotations = dict()
         return
 
     def set(self, group: str, item: str, value: str):
@@ -45,6 +46,9 @@ class VizConfig:
                 self.config.read(self.filename)
         self.gps_valid = self.get(group='gps', item='valid', default=self.gps_valid)
         self.gps_invalid = self.get(group='gps', item='invalid', default=self.gps_invalid)
+        if 'annotations' in self.config.sections():
+            for key in list(self.config['annotations'].keys()):
+                self.annotations[key] = self.config['annotations'][key]
         return
 
     def save_config(self, filename: str = None):
