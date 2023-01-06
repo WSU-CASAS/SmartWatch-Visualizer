@@ -52,37 +52,59 @@ class FullSensorData:
 
     def get_first_stamp(self) -> str:
         msg = '...'
+        if self.has_data:
+            msg = str(self.sensor_data[self.sensor_window - 1]['stamp'])
         return msg
 
     def get_current_stamp(self) -> str:
         msg = '...'
+        if self.has_data:
+            msg = str(self.sensor_data[self.index + self.sensor_window - 1]['stamp'])
         return msg
 
     def get_last_stamp(self) -> str:
         msg = '...'
+        if self.has_data:
+            msg = str(self.sensor_data[-1]['stamp'])
         return msg
 
     def increase_window_size(self) -> bool:
         action = False
+        if (self.index + self.sensor_window + 1) < self.data_size:
+            self.sensor_window += 1
+            action = True
         return action
 
     def decrease_window_size(self) -> bool:
         action = False
+        if (self.sensor_window - 1) >= 1:
+            self.sensor_window -= 1
+            action = True
         return action
 
     def step_forward(self) -> bool:
         action = False
+        if (self.index + self.sensor_window + 1) < self.data_size:
+            self.index += 1
+            action = True
         return action
 
     def step_backward(self) -> bool:
         action = False
+        if (self.index - 1) >= 0:
+            self.index -= 1
+            action = True
         return action
 
     def goto_index(self, clicked_float: float):
+        if 0.0 <= clicked_float <= 1.0:
+            self.index = int(clicked_float * self.data_size)
         return
 
     def annotate_window(self, annotation: str):
         self.data_has_changed = True
+        for i in range(self.index, self.index + self.sensor_window):
+            self.sensor_data[i][LABEL_FIELD] = annotation
         return
 
     def plot_sensors(self, axis):

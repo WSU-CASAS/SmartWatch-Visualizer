@@ -191,14 +191,18 @@ class SmartWatchVisualizer:
             if self.data.decrease_window_size():
                 GLib.idle_add(self.set_first_current_lbl_progress)
                 GLib.idle_add(self.draw_canvas)
-        elif event.string == self.config.gps_invalid:
-            print(self.config.gps_invalid)
-            self.data.mark_window_invalid()
-            GLib.idle_add(self.draw_canvas)
-        elif event.string == self.config.gps_valid:
-            print(self.config.gps_valid)
-            self.data.mark_window_valid()
-            GLib.idle_add(self.draw_canvas)
+        elif self.STATE == MODE_GPS_VISUALIZATION:
+            if event.string == self.config.gps_invalid:
+                print(self.config.gps_invalid)
+                self.data.mark_window_invalid()
+                GLib.idle_add(self.draw_canvas)
+            elif event.string == self.config.gps_valid:
+                print(self.config.gps_valid)
+                self.data.mark_window_valid()
+                GLib.idle_add(self.draw_canvas)
+        elif self.STATE == MODE_SENSOR_VISUALIZATION:
+            if event.string in self.config.annotations.keys():
+                self.data.annotate_window(annotation=self.config.annotations[event.string])
         return
 
     def update_visible_state(self):
