@@ -29,6 +29,7 @@ from numpy.random import random
 from matplotlib.figure import Figure
 from data import WatchData
 from data.config import VizConfig
+from data import MODE_GPS, MODE_SENSORS
 
 MODE_FIRST_WINDOW = 0
 MODE_OPENING_FILE = 1
@@ -151,12 +152,23 @@ class SmartWatchVisualizer:
     def draw_canvas_next(self):
         if self.data.has_data():
             self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
-        self.ax.cla()
-        self.data.plot_gps(self.ax)
-        self.ax.set_axis_off()
-        # self.canvas.draw()
-        self.canvas.draw_idle()
-        self.canvas.flush_events()
+        if self.mode_gps_item.get_active():
+            self.ax.cla()
+            self.data.plot_gps(self.ax)
+            self.ax.set_axis_off()
+            # self.canvas.draw()
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
+        else:
+            print('draw for sensors')
+            self.axes1.cla()
+            self.axes2.cla()
+            self.axes3.cla()
+            self.data.plot_sensors(axis1=self.axes1,
+                                   axis2=self.axes2,
+                                   axis3=self.axes3)
+            self.canvas2.draw_idle()
+            self.canvas2.flush_events()
         self.pop_status_message(context_id=1)
         return
 
@@ -213,9 +225,12 @@ class SmartWatchVisualizer:
             self.spinner.show()
             self.lbl_loading_file.hide()
             self.canvas.hide()
+            self.canvas2.hide()
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
+            self.mode_gps_item.set_sensitive(False)
+            self.mode_sensor_item.set_sensitive(False)
         elif self.STATE == MODE_OPENING_FILE:
             self.hbox1.hide()
             self.eventbox.hide()
@@ -223,9 +238,12 @@ class SmartWatchVisualizer:
             self.spinner.show()
             self.lbl_loading_file.show()
             self.canvas.hide()
+            self.canvas2.hide()
             self.open_file_item.set_sensitive(False)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
+            self.mode_gps_item.set_sensitive(False)
+            self.mode_sensor_item.set_sensitive(False)
         elif self.STATE == MODE_GPS_VISUALIZATION:
             self.hbox1.show()
             self.eventbox.show()
@@ -233,9 +251,25 @@ class SmartWatchVisualizer:
             self.spinner.hide()
             self.lbl_loading_file.hide()
             self.canvas.show()
+            self.canvas2.hide()
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(True)
             self.save_as_item.set_sensitive(True)
+            self.mode_gps_item.set_sensitive(True)
+            self.mode_sensor_item.set_sensitive(True)
+        elif self.STATE == MODE_SENSOR_VISUALIZATION:
+            self.hbox1.show()
+            self.eventbox.show()
+            self.spinner.stop()
+            self.spinner.hide()
+            self.lbl_loading_file.hide()
+            self.canvas.hide()
+            self.canvas2.show()
+            self.open_file_item.set_sensitive(True)
+            self.save_item.set_sensitive(True)
+            self.save_as_item.set_sensitive(True)
+            self.mode_gps_item.set_sensitive(True)
+            self.mode_sensor_item.set_sensitive(True)
         elif self.STATE == MODE_SAVING_FILE:
             self.hbox1.hide()
             self.eventbox.hide()
@@ -243,9 +277,24 @@ class SmartWatchVisualizer:
             self.spinner.show()
             self.lbl_loading_file.show()
             self.canvas.hide()
+            self.canvas2.hide()
             self.open_file_item.set_sensitive(False)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
+            self.mode_gps_item.set_sensitive(False)
+            self.mode_sensor_item.set_sensitive(False)
+        return
+
+    def on_mode_toggled(self, widget, mode):
+        if widget.get_active():
+            self.STATE = mode
+            if self.STATE == MODE_GPS_VISUALIZATION:
+                self.data.set_mode(mode=MODE_GPS)
+            elif self.STATE == MODE_SENSOR_VISUALIZATION:
+                self.data.set_mode(mode=MODE_SENSORS)
+            self.update_visible_state()
+            GLib.idle_add(self.set_all_lbl_progress)
+            GLib.idle_add(self.draw_canvas)
         return
 
     def close_application(self, *args):
@@ -272,6 +321,7 @@ class SmartWatchVisualizer:
         # Create the menu for the visualizer.
         main = Gio.Menu.new()
         self.menu_bar = Gtk.MenuBar()
+        # File menu.
         self.file_menu = Gtk.Menu()
         self.file_item = Gtk.MenuItem(label='File')
         self.open_file_item = Gtk.MenuItem(label='Open File')
@@ -280,6 +330,15 @@ class SmartWatchVisualizer:
         self.save_item.set_sensitive(False)
         self.save_as_item = Gtk.MenuItem(label='Save As')
         self.save_as_item.set_sensitive(False)
+        # Mode menu
+        self.mode_menu = Gtk.Menu()
+        self.mode_item = Gtk.MenuItem(label='Mode')
+        self.mode_gps_item = Gtk.RadioMenuItem(label='GPS Plot')
+        self.mode_gps_item.set_active(True)
+        self.mode_gps_item.set_sensitive(False)
+        self.mode_sensor_item = Gtk.RadioMenuItem(label='Sensors Plot',
+                                                  group=self.mode_gps_item)
+        self.mode_sensor_item.set_sensitive(False)
 
         self.file_menu.append(self.open_file_item)
         self.file_menu.append(Gtk.SeparatorMenuItem())
@@ -289,6 +348,13 @@ class SmartWatchVisualizer:
         self.file_item.set_submenu(self.file_menu)
 
         self.menu_bar.append(self.file_item)
+
+        self.mode_menu.append(self.mode_gps_item)
+        self.mode_menu.append(self.mode_sensor_item)
+
+        self.mode_item.set_submenu(self.mode_menu)
+
+        self.menu_bar.append(self.mode_item)
 
         self.lbl_progress_start = Gtk.Label(label=str(datetime.datetime.now()))
         self.lbl_progress_start.set_justify(Gtk.Justification.LEFT)
@@ -318,16 +384,22 @@ class SmartWatchVisualizer:
         self.vbox1.pack_start(self.spinner, True, True, 0)
         self.vbox1.pack_start(self.lbl_loading_file, True, True, 0)
 
-        # num_rows, num_cols = 2, 20
-        # data = random((num_rows, num_cols))
         # Matplotlib stuff
-        fig = Figure(figsize=(30, 30))
+        fig = Figure(figsize=(32, 32),
+                     layout='tight')
 
         self.canvas = FigureCanvas(fig)  # a Gtk.DrawingArea
         self.vbox1.pack_start(self.canvas, True, True, 0)
         self.ax = fig.add_subplot()
         self.ax.set_axis_off()
-        # self.line, = ax.plot(data[0, :], 'go')  # plot the first row
+
+        fig2 = Figure(figsize=(32, 32))
+        self.canvas2 = FigureCanvas(fig2)
+        self.vbox1.pack_start(self.canvas2, True, True, 0)
+        self.axes1 = fig2.add_subplot(3, 1, 1)
+        self.axes2 = fig2.add_subplot(3, 1, 2)
+        self.axes3 = fig2.add_subplot(3, 1, 3)
+        fig2.subplots_adjust(hspace=0)
 
         self.status_bar = Gtk.Statusbar()
         self.vbox1.pack_start(self.status_bar, False, True, 0)
@@ -336,6 +408,8 @@ class SmartWatchVisualizer:
         self.window.connect('key-press-event', self.on_key_press_event)
         self.open_file_item.connect('activate', self.on_file_open_clicked)
         self.save_item.connect('activate', self.on_file_save_clicked)
+        self.mode_gps_item.connect('toggled', self.on_mode_toggled, MODE_GPS_VISUALIZATION)
+        self.mode_sensor_item.connect('toggled', self.on_mode_toggled, MODE_SENSOR_VISUALIZATION)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
         self.window.show_all()
         self.update_visible_state()

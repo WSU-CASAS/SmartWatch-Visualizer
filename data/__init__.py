@@ -147,9 +147,11 @@ class WatchData:
             self.gps_data.plot_gps(axis=axis)
         return
 
-    def plot_sensors(self, axis):
+    def plot_sensors(self, axis1, axis2, axis3):
         if self.mode == MODE_SENSORS:
-            self.full_data.plot_sensors(axis=axis)
+            self.full_data.plot_sensors(axis1=axis1,
+                                        axis2=axis2,
+                                        axis3=axis3)
         return
 
     def load_data(self, filename: str, update_callback=None, done_callback=None):

@@ -22,6 +22,7 @@ from .gps import GPSData
 import copy
 import datetime
 import time
+import numpy as np
 from collections import OrderedDict
 
 DEFAULT_IS_VALID = True
@@ -107,7 +108,35 @@ class FullSensorData:
             self.sensor_data[i][LABEL_FIELD] = annotation
         return
 
-    def plot_sensors(self, axis):
+    def plot_sensors(self, axis1, axis2, axis3):
+        x = np.array(list(range(self.sensor_window)))
+        index_range = list(range(self.index, self.index + self.sensor_window))
+        # yaw, pitch, roll
+        yaw = np.array([self.sensor_data[i]['yaw'] for i in index_range])
+        pitch = np.array([self.sensor_data[i]['pitch'] for i in index_range])
+        roll = np.array([self.sensor_data[i]['roll'] for i in index_range])
+        axis1.plot(x, yaw)
+        axis1.plot(x, pitch)
+        axis1.plot(x, roll)
+        axis1.autoscale_view()
+
+        # rotation_rate_x, rotation_rate_y, rotation_rate_z
+        rotation_rate_x = np.array([self.sensor_data[i]['rotation_rate_x'] for i in index_range])
+        rotation_rate_y = np.array([self.sensor_data[i]['rotation_rate_y'] for i in index_range])
+        rotation_rate_z = np.array([self.sensor_data[i]['rotation_rate_z'] for i in index_range])
+        axis2.plot(x, rotation_rate_x)
+        axis2.plot(x, rotation_rate_y)
+        axis2.plot(x, rotation_rate_z)
+        axis2.autoscale_view()
+
+        # user_acceleration_x, user_acceleration_y, user_acceleration_z
+        user_acc_x = np.array([self.sensor_data[i]['user_acceleration_x'] for i in index_range])
+        user_acc_y = np.array([self.sensor_data[i]['user_acceleration_y'] for i in index_range])
+        user_acc_z = np.array([self.sensor_data[i]['user_acceleration_z'] for i in index_range])
+        axis3.plot(x, user_acc_x)
+        axis3.plot(x, user_acc_y)
+        axis3.plot(x, user_acc_z)
+        axis3.autoscale_view()
         return
 
     def load_data(self, filename: str, gps_data: WatchGPSData, update_callback=None,
