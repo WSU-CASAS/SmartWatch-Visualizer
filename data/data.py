@@ -25,6 +25,7 @@ import time
 import numpy as np
 from collections import OrderedDict
 
+DEFAULT_SENSOR_WINDOW = 500
 DEFAULT_IS_VALID = True
 GPS_VALID_FIELD = 'is_gps_valid'
 GPS_VALID_DICT = dict({'0': False,
@@ -47,7 +48,7 @@ class FullSensorData:
         self.index = 0
         self.data_size = 0
         self.sensor_data = list()
-        self.sensor_window = 100
+        self.sensor_window = DEFAULT_SENSOR_WINDOW
         self.fields = None
         return
 
@@ -71,15 +72,15 @@ class FullSensorData:
 
     def increase_window_size(self) -> bool:
         action = False
-        if (self.index + self.sensor_window + 1) < self.data_size:
-            self.sensor_window += 1
+        if (self.index + self.sensor_window + 10) < self.data_size:
+            self.sensor_window += 10
             action = True
         return action
 
     def decrease_window_size(self) -> bool:
         action = False
-        if (self.sensor_window - 1) >= 1:
-            self.sensor_window -= 1
+        if (self.sensor_window - 10) >= 1:
+            self.sensor_window -= 10
             action = True
         return action
 
@@ -147,7 +148,7 @@ class FullSensorData:
         self.data_has_changed = False
         self.index = 0
         self.data_size = 0
-        self.sensor_window = 100
+        self.sensor_window = DEFAULT_SENSOR_WINDOW
         gps_data.load_data_init()
         with MobileData(filename, 'r') as mdata:
             del self.fields
@@ -203,6 +204,8 @@ class FullSensorData:
         if len(self.sensor_data) > 0:
             gps_data.load_data_end()
             self.data_size = len(self.sensor_data)
+            if self.data_size < self.sensor_window:
+                self.sensor_window = int(self.data_size / 2)
             self.has_data = True
             self.data_has_changed = False
 
