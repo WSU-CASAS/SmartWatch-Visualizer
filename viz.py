@@ -27,9 +27,12 @@ import threading
 from matplotlib.backends.backend_gtk3agg import FigureCanvas  # or gtk3cairo.
 from numpy.random import random
 from matplotlib.figure import Figure
+import matplotlib.style as mplstyle
 from data import WatchData
 from data.config import VizConfig
 from data import MODE_GPS, MODE_SENSORS
+
+mplstyle.use(['fast'])
 
 MODE_FIRST_WINDOW = 0
 MODE_OPENING_FILE = 1
@@ -146,7 +149,11 @@ class SmartWatchVisualizer:
 
     def draw_canvas(self):
         self.set_status_message(message='Loading image...', context_id=1)
-        GLib.idle_add(self.draw_canvas_next)
+        # Allow redraw for loading image text when running GPS visualization.
+        if self.STATE == MODE_GPS_VISUALIZATION:
+            GLib.idle_add(self.draw_canvas_next)
+        else:
+            self.draw_canvas_next()
         return
 
     def draw_canvas_next(self):
@@ -172,6 +179,16 @@ class SmartWatchVisualizer:
         self.pop_status_message(context_id=1)
         return
 
+    def timer_tick(self):
+        response = True
+        if self.STATE != MODE_SENSOR_VISUALIZATION:
+            response = False
+            self.timer = None
+        if self.need_redraw:
+            self.draw_canvas_next()
+            self.need_redraw = False
+        return response
+
     def on_button_pressed_progress(self, widget, event):
         if self.data.has_data():
             rec = self.eventbox.get_allocated_width()
@@ -187,22 +204,34 @@ class SmartWatchVisualizer:
             print('LEFT')
             if self.data.step_backward():
                 GLib.idle_add(self.set_current_lbl_progress)
-                GLib.idle_add(self.draw_canvas)
+                if self.STATE == MODE_SENSOR_VISUALIZATION:
+                    self.need_redraw = True
+                else:
+                    GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65363:     # Right
             print('RIGHT')
             if self.data.step_forward():
                 GLib.idle_add(self.set_current_lbl_progress)
-                GLib.idle_add(self.draw_canvas)
+                if self.STATE == MODE_SENSOR_VISUALIZATION:
+                    self.need_redraw = True
+                else:
+                    GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65362:     # Up
             print('UP')
             if self.data.increase_window_size():
                 GLib.idle_add(self.set_first_current_lbl_progress)
-                GLib.idle_add(self.draw_canvas)
+                if self.STATE == MODE_SENSOR_VISUALIZATION:
+                    self.need_redraw = True
+                else:
+                    GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65364:     # Down
             print('DOWN')
             if self.data.decrease_window_size():
                 GLib.idle_add(self.set_first_current_lbl_progress)
-                GLib.idle_add(self.draw_canvas)
+                if self.STATE == MODE_SENSOR_VISUALIZATION:
+                    self.need_redraw = True
+                else:
+                    GLib.idle_add(self.draw_canvas)
         elif self.STATE == MODE_GPS_VISUALIZATION:
             if event.string == self.config.gps_invalid:
                 print(self.config.gps_invalid)
@@ -292,6 +321,8 @@ class SmartWatchVisualizer:
                 self.data.set_mode(mode=MODE_GPS)
             elif self.STATE == MODE_SENSOR_VISUALIZATION:
                 self.data.set_mode(mode=MODE_SENSORS)
+                self.timer = GLib.timeout_add(100, self.timer_tick)
+            self.need_redraw = True
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)
@@ -308,6 +339,8 @@ class SmartWatchVisualizer:
         self.STATE = MODE_FIRST_WINDOW
         self.data = WatchData()
         self.opened_filename = None
+        self.need_redraw = False
+        self.timer = None
         # My main window.
         self.window = Gtk.ApplicationWindow(title='Smart Watch Visualizer')
         self.window.set_default_size(width=600, height=400)
