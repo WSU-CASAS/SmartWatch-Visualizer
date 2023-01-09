@@ -191,10 +191,10 @@ class WatchGPSData:
             diffy = (maxy - miny) * 1.1
             # print('x ', minx, maxx, diffx)
             # print('y ', miny, maxy, diffy)
-            if abs(diffx) < 200.0:
-                diffx = 200.0
-            if abs(diffy) < 200.0:
-                diffy = 200.0
+            if abs(diffx) < 300.0:
+                diffx = 300.0
+            if abs(diffy) < 300.0:
+                diffy = 300.0
             if diffx < diffy:
                 diffx = diffy
             else:
