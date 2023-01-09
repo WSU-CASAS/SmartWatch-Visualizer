@@ -50,6 +50,8 @@ class FullSensorData:
         self.sensor_data = list()
         self.sensor_window = DEFAULT_SENSOR_WINDOW
         self.fields = None
+        self.window_size_adj_rate = 10
+        self.step_delta_rate = 10
         return
 
     def get_first_stamp(self) -> str:
@@ -72,29 +74,29 @@ class FullSensorData:
 
     def increase_window_size(self) -> bool:
         action = False
-        if (self.index + self.sensor_window + 10) < self.data_size:
-            self.sensor_window += 10
+        if (self.index + self.sensor_window + self.window_size_adj_rate) < self.data_size:
+            self.sensor_window += self.window_size_adj_rate
             action = True
         return action
 
     def decrease_window_size(self) -> bool:
         action = False
-        if (self.sensor_window - 10) >= 1:
-            self.sensor_window -= 10
+        if (self.sensor_window - self.window_size_adj_rate) >= 1:
+            self.sensor_window -= self.window_size_adj_rate
             action = True
         return action
 
     def step_forward(self) -> bool:
         action = False
-        if (self.index + self.sensor_window + 1) < self.data_size:
-            self.index += 1
+        if (self.index + self.sensor_window + self.step_delta_rate) < self.data_size:
+            self.index += self.step_delta_rate
             action = True
         return action
 
     def step_backward(self) -> bool:
         action = False
-        if (self.index - 1) >= 0:
-            self.index -= 1
+        if (self.index - self.step_delta_rate) >= 0:
+            self.index -= self.step_delta_rate
             action = True
         return action
 
@@ -116,28 +118,44 @@ class FullSensorData:
         yaw = np.array([self.sensor_data[i]['yaw'] for i in index_range])
         pitch = np.array([self.sensor_data[i]['pitch'] for i in index_range])
         roll = np.array([self.sensor_data[i]['roll'] for i in index_range])
-        axis1.plot(x, yaw)
-        axis1.plot(x, pitch)
-        axis1.plot(x, roll)
-        axis1.autoscale_view()
+        axis1.plot(x, yaw, label='yaw')
+        axis1.plot(x, pitch, label='pitch')
+        axis1.plot(x, roll, label='roll')
+        self.adjust_axes(axis=axis1,
+                         label='yaw/pitch/roll')
 
         # rotation_rate_x, rotation_rate_y, rotation_rate_z
         rotation_rate_x = np.array([self.sensor_data[i]['rotation_rate_x'] for i in index_range])
         rotation_rate_y = np.array([self.sensor_data[i]['rotation_rate_y'] for i in index_range])
         rotation_rate_z = np.array([self.sensor_data[i]['rotation_rate_z'] for i in index_range])
-        axis2.plot(x, rotation_rate_x)
-        axis2.plot(x, rotation_rate_y)
-        axis2.plot(x, rotation_rate_z)
-        axis2.autoscale_view()
+        axis2.plot(x, rotation_rate_x, label='x')
+        axis2.plot(x, rotation_rate_y, label='y')
+        axis2.plot(x, rotation_rate_z, label='z')
+        self.adjust_axes(axis=axis2,
+                         label='rotation rate')
 
         # user_acceleration_x, user_acceleration_y, user_acceleration_z
         user_acc_x = np.array([self.sensor_data[i]['user_acceleration_x'] for i in index_range])
         user_acc_y = np.array([self.sensor_data[i]['user_acceleration_y'] for i in index_range])
         user_acc_z = np.array([self.sensor_data[i]['user_acceleration_z'] for i in index_range])
-        axis3.plot(x, user_acc_x)
-        axis3.plot(x, user_acc_y)
-        axis3.plot(x, user_acc_z)
-        axis3.autoscale_view()
+        axis3.plot(x, user_acc_x, label='x')
+        axis3.plot(x, user_acc_y, label='y')
+        axis3.plot(x, user_acc_z, label='z')
+        self.adjust_axes(axis=axis3,
+                         label='user acceleration')
+        axis3.set_xlabel(xlabel='{}  ->  {}  (NOW)'.format(
+            str(self.sensor_data[self.index]['stamp']),
+            str(self.sensor_data[self.index + self.sensor_window - 1]['stamp'])))
+        return
+
+    def adjust_axes(self, axis, label):
+        # This adjusts an axis and makes the most it will zoom in to be -1.0 to 1.0.
+        axis.autoscale_view()
+        bottom, top = axis.get_ylim()
+        axis.set_ylim(bottom=min([bottom, -1.0]),
+                      top=max(top, 1.0))
+        axis.set_ylabel(ylabel=label)
+        axis.legend(loc='upper left')
         return
 
     def load_data(self, filename: str, gps_data: WatchGPSData, update_callback=None,
@@ -149,6 +167,7 @@ class FullSensorData:
         self.index = 0
         self.data_size = 0
         self.sensor_window = DEFAULT_SENSOR_WINDOW
+        labels = set()
         gps_data.load_data_init()
         with MobileData(filename, 'r') as mdata:
             del self.fields
@@ -177,6 +196,10 @@ class FullSensorData:
                 if not has_gps_valid:
                     row[GPS_VALID_FIELD] = GPS_VALID_DICT[DEFAULT_IS_VALID]
 
+                labels.add(row[LABEL_FIELD])
+                if row[LABEL_FIELD] is not None:
+                    print(str(row['stamp']), row[LABEL_FIELD])
+
                 # Add copy of row to our sensor data.
                 self.sensor_data.append(copy.deepcopy(row))
 
@@ -201,6 +224,7 @@ class FullSensorData:
                         gps_data.gps_data[-1].last_index = count
                 count += 1
 
+        print(labels)
         if len(self.sensor_data) > 0:
             gps_data.load_data_end()
             self.data_size = len(self.sensor_data)
