@@ -215,7 +215,7 @@ class SmartWatchVisualizer:
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             if event.string in self.config.annotations.keys():
                 self.data.annotate_window(annotation=self.config.annotations[event.string])
-        return
+        return True
 
     def update_visible_state(self):
         if self.STATE == MODE_FIRST_WINDOW:
