@@ -119,7 +119,7 @@ class WatchGPSData:
 
     def goto_index(self, clicked_float: float):
         if 0.0 <= clicked_float <= 1.0:
-            self.index = int(clicked_float * self.data_size)
+            self.index = int(clicked_float * (self.data_size - self.gps_window))
             self.update_gps_data_frame()
         return
 

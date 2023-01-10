@@ -102,7 +102,7 @@ class FullSensorData:
 
     def goto_index(self, clicked_float: float):
         if 0.0 <= clicked_float <= 1.0:
-            self.index = int(clicked_float * self.data_size)
+            self.index = int(clicked_float * (self.data_size - self.sensor_window))
         return
 
     def annotate_window(self, annotation: str):
@@ -184,7 +184,7 @@ class FullSensorData:
             cur_lat = -1.0
             cur_lon = -1.0
             for row in mdata.rows_dict:
-                if (count % 500) == 0:
+                if (count % 1000) == 0:
                     msg = 'Loading file...\n'
                     msg += '{} rows loaded\n'.format(count)
                     msg += 'At stamp: {}'.format(str(row['stamp']))
