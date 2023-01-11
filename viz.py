@@ -117,11 +117,21 @@ class SmartWatchVisualizer:
         return
 
     def callback_loading_file_done(self):
-        self.STATE = MODE_GPS_VISUALIZATION
-        GLib.idle_add(self.set_status_message, 'Ready')
-        GLib.idle_add(self.set_all_lbl_progress)
-        GLib.idle_add(self.update_visible_state)
-        GLib.idle_add(self.draw_canvas)
+        if self.data.has_data():
+            if self.data.has_gps_data():
+                self.STATE = MODE_GPS_VISUALIZATION
+                self.data.set_mode(mode=MODE_GPS)
+            else:
+                self.STATE = MODE_SENSOR_VISUALIZATION
+                self.data.set_mode(mode=MODE_SENSORS)
+            GLib.idle_add(self.set_status_message, 'Ready')
+            GLib.idle_add(self.set_all_lbl_progress)
+            GLib.idle_add(self.update_visible_state)
+            GLib.idle_add(self.draw_canvas)
+        else:
+            self.STATE = MODE_FIRST_WINDOW
+            GLib.idle_add(self.set_status_message, 'There is no data to visualize.')
+            GLib.idle_add(self.update_visible_state)
         return
 
     def set_all_lbl_progress(self):
@@ -316,13 +326,20 @@ class SmartWatchVisualizer:
 
     def on_mode_toggled(self, widget, mode):
         if widget.get_active():
-            self.STATE = mode
-            if self.STATE == MODE_GPS_VISUALIZATION:
-                self.data.set_mode(mode=MODE_GPS)
-            elif self.STATE == MODE_SENSOR_VISUALIZATION:
-                self.data.set_mode(mode=MODE_SENSORS)
-                self.timer = GLib.timeout_add(100, self.timer_tick)
-            self.need_redraw = True
+            if mode == MODE_GPS_VISUALIZATION:
+                if self.data.has_gps_data():
+                    # Go ahead and set to GPS mode.
+                    self.STATE = mode
+                    self.data.set_mode(mode=MODE_GPS)
+                    self.need_redraw = True
+                    self.update_visible_state()
+            elif mode == MODE_SENSOR_VISUALIZATION:
+                if self.data.has_sensors_data():
+                    # Go ahead and set to sensors mode.
+                    self.STATE = mode
+                    self.data.set_mode(mode=MODE_SENSORS)
+                    self.timer = GLib.timeout_add(100, self.timer_tick)
+                    self.need_redraw = True
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)

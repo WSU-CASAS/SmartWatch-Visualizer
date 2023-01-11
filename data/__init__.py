@@ -30,7 +30,8 @@ VALID_MODES = list([MODE_GPS, MODE_SENSORS])
 
 class WatchData:
     def __init__(self):
-        self.mode = MODE_GPS
+        self.mode = MODE_SENSORS
+        self.has_any_data = False
         self.gps_data = WatchGPSData()
         self.full_data = FullSensorData()
         return
@@ -41,12 +42,13 @@ class WatchData:
         return
 
     def has_data(self) -> bool:
-        value = False
-        if self.mode == MODE_GPS:
-            value = self.gps_data.has_data
-        elif self.mode == MODE_SENSORS:
-            value = self.full_data.has_data
-        return value
+        return self.has_any_data
+
+    def has_gps_data(self) -> bool:
+        return self.gps_data.has_data
+
+    def has_sensors_data(self) -> bool:
+        return self.full_data.has_data
 
     def index(self) -> int:
         i = 0
@@ -155,10 +157,13 @@ class WatchData:
         return
 
     def load_data(self, filename: str, update_callback=None, done_callback=None):
+        self.has_any_data = False
         self.full_data.load_data(filename=filename,
                                  gps_data=self.gps_data,
                                  update_callback=update_callback,
                                  done_callback=done_callback)
+        if self.gps_data.has_data or self.full_data.has_data:
+            self.has_any_data = True
         return
 
     def save_data(self, filename: str, update_callback=None, done_callback=None):
