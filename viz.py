@@ -42,6 +42,146 @@ MODE_SENSOR_VISUALIZATION = 4
 
 
 class SmartWatchVisualizer:
+    @staticmethod
+    def build_spinbutton_listboxrow(button: Gtk.SpinButton, label: str, value: int) \
+            -> Gtk.ListBoxRow:
+        row = Gtk.ListBoxRow()
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=50)
+        row.add(hbox)
+        item_label = Gtk.Label(label=label)
+        hbox.pack_start(item_label, True, True, 0)
+        button.set_value(value=value)
+        hbox.pack_start(button, False, True, 0)
+        return row
+
+    def on_edit_settings_clicked(self, widget):
+        self.settings = Gtk.Window(transient_for=self.window,
+                                   destroy_with_parent=True,
+                                   title='Edit Settings')
+        self.settings.set_border_width(10)
+        # Main box of the window.
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.settings.add(main_box)
+        # Label for the graph section.
+        graph_label = Gtk.Label(label='Visualization Navigation Settings')
+        graph_label.set_justify(Gtk.Justification.LEFT)
+        main_box.pack_start(graph_label, True, True, 0)
+        # Contents of the graph section.
+        listbox = Gtk.ListBox()
+        listbox.set_selection_mode(mode=Gtk.SelectionMode.NONE)
+        main_box.pack_start(listbox, True, True, 0)
+
+        self.sb_gps_window_size = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_gps_window_size,
+                                     value=self.config.gps_window_size)
+        self.sb_gps_step_delta_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_gps_step_delta_rate,
+                                     value=self.config.gps_step_delta_rate)
+        self.sb_gps_win_size_adj_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_gps_win_size_adj_rate,
+                                     value=self.config.gps_win_size_adj_rate)
+        self.sb_sen_window_size = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_sen_window_size,
+                                     value=self.config.sensors_window_size)
+        self.sb_sen_step_delta_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_sen_step_delta_rate,
+                                     value=self.config.sensors_step_delta_rate)
+        self.sb_sen_win_size_adj_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_sen_win_size_adj_rate,
+                                     value=self.config.sensors_win_size_adj_rate)
+
+        # Graph spinbutton entries.
+        row = self.build_spinbutton_listboxrow(button=self.sb_gps_window_size,
+                                               label='GPS Window Size',
+                                               value=self.config.gps_window_size)
+        listbox.add(row)
+        row = self.build_spinbutton_listboxrow(button=self.sb_gps_win_size_adj_rate,
+                                               label='GPS Window Size Change Steps',
+                                               value=self.config.gps_win_size_adj_rate)
+        listbox.add(row)
+        row = self.build_spinbutton_listboxrow(button=self.sb_gps_step_delta_rate,
+                                               label='GPS Left/Right Step Size',
+                                               value=self.config.gps_step_delta_rate)
+        listbox.add(row)
+        row = self.build_spinbutton_listboxrow(button=self.sb_sen_window_size,
+                                               label='Sensors Window Size',
+                                               value=self.config.sensors_window_size)
+        listbox.add(row)
+        row = self.build_spinbutton_listboxrow(button=self.sb_sen_win_size_adj_rate,
+                                               label='Sensors Window Size Change Steps',
+                                               value=self.config.sensors_win_size_adj_rate)
+        listbox.add(row)
+        row = self.build_spinbutton_listboxrow(button=self.sb_sen_step_delta_rate,
+                                               label='Sensors Left/Right Step Size',
+                                               value=self.config.sensors_step_delta_rate)
+        listbox.add(row)
+
+        # Ok/Cancel buttons at the bottom.
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=100)
+        main_box.pack_start(hbox, True, True, 0)
+        btn_ok = Gtk.Button(label='OK')
+        btn_cancel = Gtk.Button(label='Cancel')
+        hbox.pack_start(btn_ok, False, True, 0)
+        hbox.pack_start(btn_cancel, False, True, 0)
+
+        btn_ok.connect('clicked', self.cb_settings_buttons, 'Ok')
+        btn_cancel.connect('clicked', self.cb_settings_buttons, 'Cancel')
+
+        self.settings.show_all()
+        return
+
+    def cb_settings_buttons(self, button, value):
+        if value == 'Cancel':
+            self.settings.hide()
+            self.settings = None
+        elif value == 'Ok':
+            self.settings.hide()
+            self.config.gps_window_size = self.sb_gps_window_size.get_value_as_int()
+            self.config.gps_win_size_adj_rate = self.sb_gps_win_size_adj_rate.get_value_as_int()
+            self.config.gps_step_delta_rate = self.sb_gps_step_delta_rate.get_value_as_int()
+            self.config.sensors_window_size = self.sb_sen_window_size.get_value_as_int()
+            self.config.sensors_win_size_adj_rate = self.sb_sen_win_size_adj_rate.get_value_as_int()
+            self.config.sensors_step_delta_rate = self.sb_sen_step_delta_rate.get_value_as_int()
+            self.data.update_config(wconfig=self.config)
+            if self.data.has_data():
+                GLib.idle_add(self.draw_canvas)
+        return
+
+    def on_file_save_as_clicked(self, widget):
+        ffilter = Gtk.FileFilter()
+        ffilter.add_pattern('*.data')
+        ffilter.add_pattern('*.csv')
+        ffilter.set_name('Data Files')
+        filterall = Gtk.FileFilter()
+        filterall.add_pattern('*')
+        filterall.set_name('All Files')
+        get_file = Gtk.FileChooserDialog(title='Please select a data file',
+                                         parent=self.window,
+                                         action=Gtk.FileChooserAction.SAVE)
+        get_file.add_buttons(Gtk.STOCK_CANCEL,
+                             Gtk.ResponseType.CANCEL,
+                             Gtk.STOCK_SAVE_AS,
+                             Gtk.ResponseType.OK)
+        get_file.add_filter(filter=ffilter)
+        get_file.add_filter(filter=filterall)
+
+        response = get_file.run()
+        if response == Gtk.ResponseType.OK:
+            file_path = get_file.get_filename()
+            self.opened_filename = file_path
+            print('Saving to file: {}'.format(self.opened_filename))
+            thread = threading.Thread(target=self.threaded_save_data, args=(self.opened_filename,))
+            thread.daemon = True
+
+            self.set_status_message(message='Saving file...  This may take some time.')
+            self.STATE = MODE_SAVING_FILE
+            self.update_visible_state()
+
+            thread.start()
+
+        get_file.destroy()
+        return
+
     def on_file_save_clicked(self, widget):
         print('Saving to file: {}'.format(self.opened_filename))
         thread = threading.Thread(target=self.threaded_save_data, args=(self.opened_filename,))
@@ -121,9 +261,12 @@ class SmartWatchVisualizer:
             if self.data.has_gps_data():
                 self.STATE = MODE_GPS_VISUALIZATION
                 self.data.set_mode(mode=MODE_GPS)
+                self.mode_gps_item.set_active(True)
             else:
                 self.STATE = MODE_SENSOR_VISUALIZATION
                 self.data.set_mode(mode=MODE_SENSORS)
+                self.mode_sensor_item.set_active(True)
+            self.data.set_config_obj(wconfig=self.config)
             GLib.idle_add(self.set_status_message, 'Ready')
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.update_visible_state)
@@ -229,6 +372,7 @@ class SmartWatchVisualizer:
         elif event.keyval == 65362:     # Up
             print('UP')
             if self.data.increase_window_size():
+                self.data.set_config_obj(wconfig=self.config)
                 GLib.idle_add(self.set_first_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
@@ -237,6 +381,7 @@ class SmartWatchVisualizer:
         elif event.keyval == 65364:     # Down
             print('DOWN')
             if self.data.decrease_window_size():
+                self.data.set_config_obj(wconfig=self.config)
                 GLib.idle_add(self.set_first_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
@@ -350,6 +495,15 @@ class SmartWatchVisualizer:
         Gtk.main_quit()
         return
 
+    @staticmethod
+    def set_spinbutton_defaults(button: Gtk.SpinButton, value: int):
+        adjustment = Gtk.Adjustment(step_increment=1, page_increment=10, lower=1, upper=10000)
+        button.set_adjustment(adjustment=adjustment)
+        button.set_numeric(True)
+        button.set_update_policy(Gtk.SpinButtonUpdatePolicy.IF_VALID)
+        button.set_value(value)
+        return
+
     def __init__(self):
         self.config = VizConfig()
         self.config.load_config(filename='config.conf')
@@ -358,9 +512,41 @@ class SmartWatchVisualizer:
         self.opened_filename = None
         self.need_redraw = False
         self.timer = None
+
+        self.txt_gps_valid = Gtk.Entry()
+        self.txt_gps_valid.set_max_length(max=1)
+        self.txt_gps_valid.set_text(text=self.config.gps_valid)
+        self.txt_gps_invalid = Gtk.Entry()
+        self.txt_gps_invalid.set_max_length(max=1)
+        self.txt_gps_invalid.set_text(text=self.config.gps_invalid)
+
+        self.sb_gps_window_size = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_gps_window_size,
+                                     value=self.config.gps_window_size)
+        self.sb_gps_step_delta_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_gps_step_delta_rate,
+                                     value=self.config.gps_step_delta_rate)
+        self.sb_gps_win_size_adj_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_gps_win_size_adj_rate,
+                                     value=self.config.gps_win_size_adj_rate)
+        self.sb_sen_window_size = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_sen_window_size,
+                                     value=self.config.sensors_window_size)
+        self.sb_sen_step_delta_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_sen_step_delta_rate,
+                                     value=self.config.sensors_step_delta_rate)
+        self.sb_sen_win_size_adj_rate = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_sen_win_size_adj_rate,
+                                     value=self.config.sensors_win_size_adj_rate)
+
         # My main window.
         self.window = Gtk.ApplicationWindow(title='Smart Watch Visualizer')
         self.window.set_default_size(width=600, height=400)
+
+        self.settings = None
+        # self.settings = Gtk.Window(transient_for=self.window,
+        #                            destroy_with_parent=True,
+        #                            title='Edit Settings')
 
         # Create boxes for packing self.window.
         self.vbox1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -380,15 +566,6 @@ class SmartWatchVisualizer:
         self.save_item.set_sensitive(False)
         self.save_as_item = Gtk.MenuItem(label='Save As')
         self.save_as_item.set_sensitive(False)
-        # Mode menu
-        self.mode_menu = Gtk.Menu()
-        self.mode_item = Gtk.MenuItem(label='Mode')
-        self.mode_gps_item = Gtk.RadioMenuItem(label='GPS Plot')
-        self.mode_gps_item.set_active(True)
-        self.mode_gps_item.set_sensitive(False)
-        self.mode_sensor_item = Gtk.RadioMenuItem(label='Sensors Plot',
-                                                  group=self.mode_gps_item)
-        self.mode_sensor_item.set_sensitive(False)
 
         self.file_menu.append(self.open_file_item)
         self.file_menu.append(Gtk.SeparatorMenuItem())
@@ -398,6 +575,28 @@ class SmartWatchVisualizer:
         self.file_item.set_submenu(self.file_menu)
 
         self.menu_bar.append(self.file_item)
+
+        # Edit menu
+        self.edit_menu = Gtk.Menu()
+        self.edit_item = Gtk.MenuItem(label='Edit')
+        self.settings_item = Gtk.MenuItem(label='Settings')
+        self.settings_item.set_sensitive(True)
+
+        self.edit_menu.append(self.settings_item)
+
+        self.edit_item.set_submenu(self.edit_menu)
+
+        self.menu_bar.append(self.edit_item)
+
+        # Mode menu
+        self.mode_menu = Gtk.Menu()
+        self.mode_item = Gtk.MenuItem(label='Mode')
+        self.mode_gps_item = Gtk.RadioMenuItem(label='GPS Plot')
+        self.mode_gps_item.set_active(True)
+        self.mode_gps_item.set_sensitive(False)
+        self.mode_sensor_item = Gtk.RadioMenuItem(label='Sensors Plot',
+                                                  group=self.mode_gps_item)
+        self.mode_sensor_item.set_sensitive(False)
 
         self.mode_menu.append(self.mode_gps_item)
         self.mode_menu.append(self.mode_sensor_item)
@@ -458,6 +657,8 @@ class SmartWatchVisualizer:
         self.window.connect('key-press-event', self.on_key_press_event)
         self.open_file_item.connect('activate', self.on_file_open_clicked)
         self.save_item.connect('activate', self.on_file_save_clicked)
+        self.save_as_item.connect('activate', self.on_file_save_as_clicked)
+        self.settings_item.connect('activate', self.on_edit_settings_clicked)
         self.mode_gps_item.connect('toggled', self.on_mode_toggled, MODE_GPS_VISUALIZATION)
         self.mode_sensor_item.connect('toggled', self.on_mode_toggled, MODE_SENSOR_VISUALIZATION)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)

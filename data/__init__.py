@@ -19,6 +19,7 @@
 from .mobile_al_data import MobileData
 from .gps import WatchGPSData
 from .data import FullSensorData
+from .config import VizConfig
 import copy
 import datetime
 import os
@@ -39,6 +40,16 @@ class WatchData:
     def set_mode(self, mode: str):
         if mode in VALID_MODES:
             self.mode = mode
+        return
+
+    def update_config(self, wconfig: VizConfig):
+        self.gps_data.update_config(wconfig=wconfig)
+        self.full_data.update_config(wconfig=wconfig)
+        return
+
+    def set_config_obj(self, wconfig: VizConfig):
+        self.gps_data.set_config_obj(wconfig=wconfig)
+        self.full_data.set_config_obj(wconfig=wconfig)
         return
 
     def has_data(self) -> bool:
@@ -164,6 +175,8 @@ class WatchData:
                                  done_callback=done_callback)
         if self.gps_data.has_data or self.full_data.has_data:
             self.has_any_data = True
+        if done_callback is not None:
+            done_callback()
         return
 
     def save_data(self, filename: str, update_callback=None, done_callback=None):

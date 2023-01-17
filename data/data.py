@@ -19,6 +19,7 @@
 from .mobile_al_data import MobileData
 from .gps import WatchGPSData
 from .gps import GPSData
+from .config import VizConfig
 import copy
 import datetime
 import time
@@ -52,6 +53,34 @@ class FullSensorData:
         self.fields = None
         self.window_size_adj_rate = 10
         self.step_delta_rate = 10
+        return
+
+    def update_config(self, wconfig: VizConfig):
+        self.sensor_window = wconfig.sensors_window_size
+        self.window_size_adj_rate = wconfig.sensors_win_size_adj_rate
+        self.step_delta_rate = wconfig.sensors_step_delta_rate
+
+        # Apply critical logic to window sizes.
+        self.apply_window_variable_logic()
+
+        # Save any changes back to the config object.
+        self.set_config_obj(wconfig=wconfig)
+        return
+
+    def apply_window_variable_logic(self):
+        if self.has_data:
+            if self.data_size < self.sensor_window:
+                self.sensor_window = self.data_size
+            if self.data_size < self.window_size_adj_rate:
+                self.window_size_adj_rate = int(self.data_size / 2)
+            if self.data_size < self.step_delta_rate:
+                self.step_delta_rate = int(self.data_size / 2)
+        return
+
+    def set_config_obj(self, wconfig: VizConfig):
+        wconfig.sensors_window_size = self.sensor_window
+        wconfig.sensors_win_size_adj_rate = self.window_size_adj_rate
+        wconfig.sensors_step_delta_rate = self.step_delta_rate
         return
 
     def get_first_stamp(self) -> str:
@@ -228,13 +257,9 @@ class FullSensorData:
         if len(self.sensor_data) > 0:
             gps_data.load_data_end()
             self.data_size = len(self.sensor_data)
-            if self.data_size < self.sensor_window:
-                self.sensor_window = int(self.data_size / 2)
             self.has_data = True
             self.data_has_changed = False
-
-        if done_callback is not None:
-            done_callback()
+            self.apply_window_variable_logic()
         return
 
     def merge_data_changes(self, gps_data: WatchGPSData, update_callback=None):

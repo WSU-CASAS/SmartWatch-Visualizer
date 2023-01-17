@@ -32,6 +32,9 @@ DEFAULT_SEN_WIN_SIZE_ADJ = 10
 class VizConfig:
     def __init__(self):
         self.config = configparser.ConfigParser()
+        self.config.add_section(section='gps')
+        self.config.add_section(section='graphs')
+        self.config.add_section(section='annotations')
         self.filename = None
         self.gps_valid = DEFAULT_GPS_VALID
         self.gps_invalid = DEFAULT_GPS_INVALID

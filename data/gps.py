@@ -25,6 +25,7 @@ import geopandas as gpd
 import contextily as cx
 from shapely.geometry import Point, LineString
 import matplotlib.pyplot as plt
+from .config import VizConfig
 
 # plt.style.use('ggplot')
 # plt.rcParams.update({'font.size': 16,
@@ -57,6 +58,8 @@ class WatchGPSData:
         self.data_size = 0
         self.gps_data = list()
         self.gps_window = 10
+        self.window_size_adj_rate = 1
+        self.step_delta_rate = 1
         self.lon_min = 0.0
         self.lon_max = 0.0
         self.lat_min = 0.0
@@ -65,6 +68,38 @@ class WatchGPSData:
         self.colors = list()
         self.sizes = list()
         self.fields = None
+        return
+
+    def update_config(self, wconfig: VizConfig):
+        self.gps_window = wconfig.gps_window_size
+        self.window_size_adj_rate = wconfig.gps_win_size_adj_rate
+        self.step_delta_rate = wconfig.gps_step_delta_rate
+
+        # Apply critical logic to window sizes.
+        self.apply_window_variable_logic()
+
+        # Save any changes back to the config object.
+        self.set_config_obj(wconfig=wconfig)
+
+        if self.has_data:
+            # Update the data frame.
+            self.update_gps_data_frame()
+        return
+
+    def apply_window_variable_logic(self):
+        if self.has_data:
+            if self.data_size < self.gps_window:
+                self.gps_window = self.data_size
+            if self.data_size < self.window_size_adj_rate:
+                self.window_size_adj_rate = int(self.data_size / 2)
+            if self.data_size < self.step_delta_rate:
+                self.step_delta_rate = int(self.data_size / 2)
+        return
+
+    def set_config_obj(self, wconfig: VizConfig):
+        wconfig.gps_window_size = self.gps_window
+        wconfig.gps_win_size_adj_rate = self.window_size_adj_rate
+        wconfig.gps_step_delta_rate = self.step_delta_rate
         return
 
     def get_first_stamp(self) -> str:
@@ -87,32 +122,32 @@ class WatchGPSData:
 
     def increase_window_size(self) -> bool:
         action = False
-        if (self.index + self.gps_window + 1) < self.data_size:
-            self.gps_window += 1
+        if (self.index + self.gps_window + self.window_size_adj_rate) < self.data_size:
+            self.gps_window += self.window_size_adj_rate
             self.update_gps_data_frame()
             action = True
         return action
 
     def decrease_window_size(self) -> bool:
         action = False
-        if (self.gps_window - 1) >= 1:
-            self.gps_window -= 1
+        if (self.gps_window - self.window_size_adj_rate) >= 1:
+            self.gps_window -= self.window_size_adj_rate
             self.update_gps_data_frame()
             action = True
         return action
 
     def step_forward(self) -> bool:
         action = False
-        if (self.index + self.gps_window + 1) < self.data_size:
-            self.index += 1
+        if (self.index + self.gps_window + self.step_delta_rate) < self.data_size:
+            self.index += self.step_delta_rate
             self.update_gps_data_frame()
             action = True
         return action
 
     def step_backward(self) -> bool:
         action = False
-        if (self.index - 1) >= 0:
-            self.index -= 1
+        if (self.index - self.step_delta_rate) >= 0:
+            self.index -= self.step_delta_rate
             self.update_gps_data_frame()
             action = True
         return action
@@ -227,6 +262,7 @@ class WatchGPSData:
             self.data_size = len(self.gps_data)
             self.has_data = True
             self.data_has_changed = False
+            self.apply_window_variable_logic()
             self.update_gps_data_frame()
         else:
             self.load_data_init()
