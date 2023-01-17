@@ -26,6 +26,7 @@ import contextily as cx
 from shapely.geometry import Point, LineString
 import matplotlib.pyplot as plt
 from .config import VizConfig
+from .annotate import SingleDataWindow
 
 # plt.style.use('ggplot')
 # plt.rcParams.update({'font.size': 16,
@@ -205,6 +206,39 @@ class WatchGPSData:
             self.gps_data[i].is_valid = True
         self.data_has_changed = True
         self.update_gps_data_frame()
+        return
+
+    def plot_given_window(self, data_window: SingleDataWindow, axis):
+        # Save the current settings to restore after plotting.
+        tmp_gps_window = self.gps_window
+        tmp_index = self.index
+
+        # Find values for index and gps_window.
+        start = 0
+        end = self.data_size - 1
+        valid = False
+        # First, check if the data_window is outside the gps data.
+        if data_window.i_last < self.gps_data[0].first_index or \
+                self.gps_data[-1].last_index < data_window.i_start:
+            valid = False
+        else:
+            for i in range(self.data_size):
+                if self.gps_data[i].first_index < data_window.i_start < self.gps_data[i].last_index:
+                    start = i
+                    valid = True
+                if self.gps_data[i].first_index < data_window.i_last < self.gps_data[i].last_index:
+                    end = i
+                    valid = True
+
+        if valid:
+            self.index = start
+            self.gps_window = abs(end - start)
+            self.update_gps_data_frame()
+            self.plot_gps(axis=axis)
+
+        # Restore the settings.
+        self.gps_window = tmp_gps_window
+        self.index = tmp_index
         return
 
     def plot_gps(self, axis):

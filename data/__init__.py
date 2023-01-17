@@ -163,11 +163,15 @@ class WatchData:
         self.full_data.annotate_given_window(data_window=data_window)
         return
 
-    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3):
-        self.full_data.plot_given_window(data_window=data_window,
-                                         axis1=axis1,
-                                         axis2=axis2,
-                                         axis3=axis3)
+    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3, axis=None):
+        if self.has_sensors_data():
+            self.full_data.plot_given_window(data_window=data_window,
+                                             axis1=axis1,
+                                             axis2=axis2,
+                                             axis3=axis3)
+        if self.has_gps_data() and axis is not None:
+            self.gps_data.plot_given_window(data_window=data_window,
+                                            axis=axis)
         return
 
     def plot_gps(self, axis):
