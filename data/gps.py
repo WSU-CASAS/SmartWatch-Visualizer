@@ -233,6 +233,11 @@ class WatchGPSData:
         if valid:
             self.index = start
             self.gps_window = abs(end - start)
+            if self.gps_window == 0:
+                self.gps_window = 1
+            print('gps index = {}'.format(self.index))
+            print('gps window = {}'.format(self.gps_window))
+            print('start = {}    end = {}'.format(start, end))
             self.update_gps_data_frame()
             self.plot_gps(axis=axis)
 

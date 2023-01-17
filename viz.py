@@ -23,14 +23,15 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Gio, GObject
 import datetime
+import random
 import threading
 from matplotlib.backends.backend_gtk3agg import FigureCanvas  # or gtk3cairo.
-from numpy.random import random
 from matplotlib.figure import Figure
 import matplotlib.style as mplstyle
 from data import WatchData
 from data.config import VizConfig
 from data import MODE_GPS, MODE_SENSORS
+from data.annotate import DataWindowList, SingleDataWindow
 
 mplstyle.use(['fast'])
 
@@ -39,6 +40,7 @@ MODE_OPENING_FILE = 1
 MODE_GPS_VISUALIZATION = 2
 MODE_SAVING_FILE = 3
 MODE_SENSOR_VISUALIZATION = 4
+MODE_ANNOTATION_HELP = 5
 
 
 class SmartWatchVisualizer:
@@ -307,32 +309,50 @@ class SmartWatchVisualizer:
     def draw_canvas(self):
         self.set_status_message(message='Loading image...', context_id=1)
         # Allow redraw for loading image text when running GPS visualization.
-        if self.STATE == MODE_GPS_VISUALIZATION:
+        if self.STATE in [MODE_GPS_VISUALIZATION, MODE_ANNOTATION_HELP]:
             GLib.idle_add(self.draw_canvas_next)
         else:
             self.draw_canvas_next()
         return
 
     def draw_canvas_next(self):
-        if self.data.has_data():
-            self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
-        if self.mode_gps_item.get_active():
+        if self.STATE == MODE_ANNOTATION_HELP:
+            i = self.data_windows.list[self.data_windows.index].i_start
+            self.progress.set_fraction(float(i)/float(self.data.data_size()))
             self.ax.cla()
-            self.data.plot_gps(self.ax)
-            self.ax.set_axis_off()
-            # self.canvas.draw()
-            self.canvas.draw_idle()
-            self.canvas.flush_events()
-        else:
-            # print('draw for sensors')
             self.axes1.cla()
             self.axes2.cla()
             self.axes3.cla()
-            self.data.plot_sensors(axis1=self.axes1,
-                                   axis2=self.axes2,
-                                   axis3=self.axes3)
+            self.data.plot_given_window(data_window=self.data_windows.list[self.data_windows.index],
+                                        axis1=self.axes1,
+                                        axis2=self.axes2,
+                                        axis3=self.axes3,
+                                        axis=self.ax)
+            self.ax.set_axis_off()
+            self.canvas.draw_idle()
+            self.canvas.flush_events()
             self.canvas2.draw_idle()
             self.canvas2.flush_events()
+        else:
+            if self.data.has_data():
+                self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
+            if self.mode_gps_item.get_active():
+                self.ax.cla()
+                self.data.plot_gps(self.ax)
+                self.ax.set_axis_off()
+                # self.canvas.draw()
+                self.canvas.draw_idle()
+                self.canvas.flush_events()
+            else:
+                # print('draw for sensors')
+                self.axes1.cla()
+                self.axes2.cla()
+                self.axes3.cla()
+                self.data.plot_sensors(axis1=self.axes1,
+                                       axis2=self.axes2,
+                                       axis3=self.axes3)
+                self.canvas2.draw_idle()
+                self.canvas2.flush_events()
         self.pop_status_message(context_id=1)
         return
 
@@ -359,7 +379,12 @@ class SmartWatchVisualizer:
         # print('key press:  {}'.format(event.string))
         if event.keyval == 65361:       # Left
             # print('LEFT')
-            if self.data.step_backward():
+            if self.STATE == MODE_ANNOTATION_HELP:
+                if (self.data_windows.index - 1) >= 0:
+                    self.data_windows.index -= 1
+                    GLib.idle_add(self.set_current_lbl_progress)
+                    GLib.idle_add(self.draw_canvas)
+            elif self.data.step_backward():
                 GLib.idle_add(self.set_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
@@ -367,7 +392,12 @@ class SmartWatchVisualizer:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65363:     # Right
             # print('RIGHT')
-            if self.data.step_forward():
+            if self.STATE == MODE_ANNOTATION_HELP:
+                if (self.data_windows.index + 1) < len(self.data_windows.list):
+                    self.data_windows.index += 1
+                    GLib.idle_add(self.set_current_lbl_progress)
+                    GLib.idle_add(self.draw_canvas)
+            elif self.data.step_forward():
                 GLib.idle_add(self.set_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
@@ -428,6 +458,7 @@ class SmartWatchVisualizer:
             self.save_as_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
+            self.mode_annotation_item.set_sensitive(False)
         elif self.STATE == MODE_OPENING_FILE:
             self.hbox1.hide()
             self.eventbox.hide()
@@ -441,6 +472,7 @@ class SmartWatchVisualizer:
             self.save_as_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
+            self.mode_annotation_item.set_sensitive(False)
         elif self.STATE == MODE_GPS_VISUALIZATION:
             self.hbox1.show()
             self.eventbox.show()
@@ -454,6 +486,7 @@ class SmartWatchVisualizer:
             self.save_as_item.set_sensitive(True)
             self.mode_gps_item.set_sensitive(True)
             self.mode_sensor_item.set_sensitive(True)
+            self.mode_annotation_item.set_sensitive(True)
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             self.hbox1.show()
             self.eventbox.show()
@@ -467,6 +500,21 @@ class SmartWatchVisualizer:
             self.save_as_item.set_sensitive(True)
             self.mode_gps_item.set_sensitive(True)
             self.mode_sensor_item.set_sensitive(True)
+            self.mode_annotation_item.set_sensitive(True)
+        elif self.STATE == MODE_ANNOTATION_HELP:
+            self.hbox1.show()
+            self.eventbox.show()
+            self.spinner.stop()
+            self.spinner.hide()
+            self.lbl_loading_file.hide()
+            self.canvas.show()
+            self.canvas2.show()
+            self.open_file_item.set_sensitive(True)
+            self.save_item.set_sensitive(True)
+            self.save_as_item.set_sensitive(True)
+            self.mode_gps_item.set_sensitive(True)
+            self.mode_sensor_item.set_sensitive(True)
+            self.mode_annotation_item.set_sensitive(True)
         elif self.STATE == MODE_SAVING_FILE:
             self.hbox1.hide()
             self.eventbox.hide()
@@ -480,6 +528,7 @@ class SmartWatchVisualizer:
             self.save_as_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
+            self.mode_annotation_item.set_sensitive(False)
         return
 
     def on_mode_toggled(self, widget, mode):
@@ -498,9 +547,34 @@ class SmartWatchVisualizer:
                     self.data.set_mode(mode=MODE_SENSORS)
                     self.timer = GLib.timeout_add(100, self.timer_tick)
                     self.need_redraw = True
+            elif mode == MODE_ANNOTATION_HELP:
+                if self.data.has_sensors_data():
+                    # Go ahead and set to sensors mode.
+                    self.STATE = mode
+                    self.data.set_mode(mode=MODE_SENSORS)
+                    # self.timer = GLib.timeout_add(100, self.timer_tick)
+                    self.need_redraw = True
+                    self.build_data_windows()
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)
+        return
+
+    def build_data_windows(self):
+        del self.data_windows
+        self.data_windows = DataWindowList()
+        random.seed()
+        choices = [500, 500, 1000, 3000, 4000, 5000, 7000, 10000]
+        i = 0
+        size = self.data.data_size()
+        while i < size:
+            win = random.choice(choices)
+            if (i + win) < size:
+                self.data_windows.add_window(window=SingleDataWindow(i_start=i,
+                                                                     i_last=i + win,
+                                                                     label='hello'))
+            i += win
+
         return
 
     def set_clean_title(self):
@@ -533,6 +607,7 @@ class SmartWatchVisualizer:
         self.opened_filename = None
         self.need_redraw = False
         self.timer = None
+        self.data_windows = DataWindowList()
 
         self.title_clean = 'Smart Watch Visualizer'
         self.title_modified = '* Smart Watch Visualizer (file modified)'
@@ -610,9 +685,13 @@ class SmartWatchVisualizer:
         self.mode_sensor_item = Gtk.RadioMenuItem(label='Sensors Plot',
                                                   group=self.mode_gps_item)
         self.mode_sensor_item.set_sensitive(False)
+        self.mode_annotation_item = Gtk.RadioMenuItem(label='Annotation Help',
+                                                      group=self.mode_gps_item)
+        self.mode_annotation_item.set_sensitive(False)
 
         self.mode_menu.append(self.mode_gps_item)
         self.mode_menu.append(self.mode_sensor_item)
+        self.mode_menu.append(self.mode_annotation_item)
 
         self.mode_item.set_submenu(self.mode_menu)
 
@@ -674,6 +753,7 @@ class SmartWatchVisualizer:
         self.settings_item.connect('activate', self.on_edit_settings_clicked)
         self.mode_gps_item.connect('toggled', self.on_mode_toggled, MODE_GPS_VISUALIZATION)
         self.mode_sensor_item.connect('toggled', self.on_mode_toggled, MODE_SENSOR_VISUALIZATION)
+        self.mode_annotation_item.connect('toggled', self.on_mode_toggled, MODE_ANNOTATION_HELP)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
         self.window.show_all()
         self.update_visible_state()
