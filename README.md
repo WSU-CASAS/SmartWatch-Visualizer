@@ -28,7 +28,6 @@ pip3 install geopandas matplotlib contextily
 4. Execute `pacman -Suy` (you might need to do this a couple of times for all updates)
 5. Execute `pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python3-pip mingw-w64-x86_64-python3-matplotlib mingw-w64-x86_64-python3-pandas`
 6. To test that GTK 3 is working you can run `gtk3-demo`
-7. Execute `pip install geopandas contextily`
 
 In anaconda run:
 ```
