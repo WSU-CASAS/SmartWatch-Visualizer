@@ -20,6 +20,7 @@ from .mobile_al_data import MobileData
 from .gps import WatchGPSData
 from .data import FullSensorData
 from .config import VizConfig
+from .annotate import SingleDataWindow
 import copy
 import datetime
 import os
@@ -156,6 +157,17 @@ class WatchData:
     def annotate_window(self, annotation: str):
         if self.mode == MODE_SENSORS:
             self.full_data.annotate_window(annotation=annotation)
+        return
+
+    def annotate_given_window(self, data_window: SingleDataWindow):
+        self.full_data.annotate_given_window(data_window=data_window)
+        return
+
+    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3):
+        self.full_data.plot_given_window(data_window=data_window,
+                                         axis1=axis1,
+                                         axis2=axis2,
+                                         axis3=axis3)
         return
 
     def plot_gps(self, axis):

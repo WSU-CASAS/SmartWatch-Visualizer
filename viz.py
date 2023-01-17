@@ -324,7 +324,7 @@ class SmartWatchVisualizer:
             self.canvas.draw_idle()
             self.canvas.flush_events()
         else:
-            print('draw for sensors')
+            # print('draw for sensors')
             self.axes1.cla()
             self.axes2.cla()
             self.axes3.cla()

@@ -20,6 +20,7 @@ from .mobile_al_data import MobileData
 from .gps import WatchGPSData
 from .gps import GPSData
 from .config import VizConfig
+from .annotate import SingleDataWindow
 import copy
 import datetime
 import time
@@ -138,6 +139,29 @@ class FullSensorData:
         self.data_has_changed = True
         for i in range(self.index, self.index + self.sensor_window):
             self.sensor_data[i][LABEL_FIELD] = annotation
+        return
+
+    def annotate_given_window(self, data_window: SingleDataWindow):
+        self.data_has_changed = True
+        for i in range(data_window.i_start, data_window.i_last + 1):
+            self.sensor_data[i][LABEL_FIELD] = data_window.label
+        return
+
+    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3):
+        # Save the current settings to restore after plotting.
+        tmp_sensor_window = self.sensor_window
+        tmp_index = self.index
+        self.index = data_window.i_start
+        self.sensor_window = abs(data_window.i_last - data_window.i_start)
+
+        # Now call the plot function.
+        self.plot_sensors(axis1=axis1,
+                          axis2=axis2,
+                          axis3=axis3)
+
+        # Restore the settings.
+        self.sensor_window = tmp_sensor_window
+        self.index = tmp_index
         return
 
     def plot_sensors(self, axis1, axis2, axis3):
