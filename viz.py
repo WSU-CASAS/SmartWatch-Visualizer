@@ -202,6 +202,8 @@ class SmartWatchVisualizer:
 
     def callback_saving_file_done(self):
         self.STATE = MODE_GPS_VISUALIZATION
+        self.data_modified = False
+        GLib.idle_add(self.set_clean_title)
         GLib.idle_add(self.set_status_message, 'Ready')
         GLib.idle_add(self.update_visible_state)
         GLib.idle_add(self.draw_canvas)
@@ -257,6 +259,8 @@ class SmartWatchVisualizer:
         return
 
     def callback_loading_file_done(self):
+        self.data_modified = False
+        GLib.idle_add(self.set_clean_title)
         if self.data.has_data():
             if self.data.has_gps_data():
                 self.STATE = MODE_GPS_VISUALIZATION
@@ -352,9 +356,9 @@ class SmartWatchVisualizer:
         return
 
     def on_key_press_event(self, widget, event):
-        print('key press:  {}'.format(event.string))
+        # print('key press:  {}'.format(event.string))
         if event.keyval == 65361:       # Left
-            print('LEFT')
+            # print('LEFT')
             if self.data.step_backward():
                 GLib.idle_add(self.set_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
@@ -362,7 +366,7 @@ class SmartWatchVisualizer:
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65363:     # Right
-            print('RIGHT')
+            # print('RIGHT')
             if self.data.step_forward():
                 GLib.idle_add(self.set_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
@@ -370,7 +374,7 @@ class SmartWatchVisualizer:
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65362:     # Up
-            print('UP')
+            # print('UP')
             if self.data.increase_window_size():
                 self.data.set_config_obj(wconfig=self.config)
                 GLib.idle_add(self.set_first_current_lbl_progress)
@@ -379,7 +383,7 @@ class SmartWatchVisualizer:
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65364:     # Down
-            print('DOWN')
+            # print('DOWN')
             if self.data.decrease_window_size():
                 self.data.set_config_obj(wconfig=self.config)
                 GLib.idle_add(self.set_first_current_lbl_progress)
@@ -389,16 +393,25 @@ class SmartWatchVisualizer:
                     GLib.idle_add(self.draw_canvas)
         elif self.STATE == MODE_GPS_VISUALIZATION:
             if event.string == self.config.gps_invalid:
-                print(self.config.gps_invalid)
+                # print(self.config.gps_invalid)
                 self.data.mark_window_invalid()
                 GLib.idle_add(self.draw_canvas)
+                if not self.data_modified:
+                    self.data_modified = True
+                    GLib.idle_add(self.set_modified_title)
             elif event.string == self.config.gps_valid:
-                print(self.config.gps_valid)
+                # print(self.config.gps_valid)
                 self.data.mark_window_valid()
                 GLib.idle_add(self.draw_canvas)
+                if not self.data_modified:
+                    self.data_modified = True
+                    GLib.idle_add(self.set_modified_title)
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             if event.string in self.config.annotations.keys():
                 self.data.annotate_window(annotation=self.config.annotations[event.string])
+                if not self.data_modified:
+                    self.data_modified = True
+                    GLib.idle_add(self.set_modified_title)
         return True
 
     def update_visible_state(self):
@@ -490,6 +503,14 @@ class SmartWatchVisualizer:
             GLib.idle_add(self.draw_canvas)
         return
 
+    def set_clean_title(self):
+        self.window.set_title(self.title_clean)
+        return
+
+    def set_modified_title(self):
+        self.window.set_title(self.title_modified)
+        return
+
     def close_application(self, *args):
         self.config.save_config()
         Gtk.main_quit()
@@ -513,6 +534,10 @@ class SmartWatchVisualizer:
         self.need_redraw = False
         self.timer = None
 
+        self.title_clean = 'Smart Watch Visualizer'
+        self.title_modified = '* Smart Watch Visualizer (file modified)'
+        self.data_modified = False
+
         self.txt_gps_valid = Gtk.Entry()
         self.txt_gps_valid.set_max_length(max=1)
         self.txt_gps_valid.set_text(text=self.config.gps_valid)
@@ -528,7 +553,7 @@ class SmartWatchVisualizer:
         self.sb_sen_win_size_adj_rate = Gtk.SpinButton()
 
         # My main window.
-        self.window = Gtk.ApplicationWindow(title='Smart Watch Visualizer')
+        self.window = Gtk.ApplicationWindow(title=self.title_clean)
         self.window.set_default_size(width=600, height=400)
 
         self.settings = None

@@ -61,6 +61,9 @@ class WatchData:
     def has_sensors_data(self) -> bool:
         return self.full_data.has_data
 
+    def data_has_changed(self) -> bool:
+        return self.full_data.data_has_changed or self.gps_data.data_has_changed
+
     def index(self) -> int:
         i = 0
         if self.mode == MODE_GPS:
