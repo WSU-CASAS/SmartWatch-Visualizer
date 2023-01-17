@@ -521,23 +521,11 @@ class SmartWatchVisualizer:
         self.txt_gps_invalid.set_text(text=self.config.gps_invalid)
 
         self.sb_gps_window_size = Gtk.SpinButton()
-        self.set_spinbutton_defaults(button=self.sb_gps_window_size,
-                                     value=self.config.gps_window_size)
         self.sb_gps_step_delta_rate = Gtk.SpinButton()
-        self.set_spinbutton_defaults(button=self.sb_gps_step_delta_rate,
-                                     value=self.config.gps_step_delta_rate)
         self.sb_gps_win_size_adj_rate = Gtk.SpinButton()
-        self.set_spinbutton_defaults(button=self.sb_gps_win_size_adj_rate,
-                                     value=self.config.gps_win_size_adj_rate)
         self.sb_sen_window_size = Gtk.SpinButton()
-        self.set_spinbutton_defaults(button=self.sb_sen_window_size,
-                                     value=self.config.sensors_window_size)
         self.sb_sen_step_delta_rate = Gtk.SpinButton()
-        self.set_spinbutton_defaults(button=self.sb_sen_step_delta_rate,
-                                     value=self.config.sensors_step_delta_rate)
         self.sb_sen_win_size_adj_rate = Gtk.SpinButton()
-        self.set_spinbutton_defaults(button=self.sb_sen_win_size_adj_rate,
-                                     value=self.config.sensors_win_size_adj_rate)
 
         # My main window.
         self.window = Gtk.ApplicationWindow(title='Smart Watch Visualizer')
