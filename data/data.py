@@ -104,7 +104,7 @@ class FullSensorData:
 
     def increase_window_size(self) -> bool:
         action = False
-        if (self.index + self.sensor_window + self.window_size_adj_rate) < self.data_size:
+        if (self.index + self.sensor_window + self.window_size_adj_rate) <= self.data_size:
             self.sensor_window += self.window_size_adj_rate
             action = True
         return action
@@ -118,7 +118,7 @@ class FullSensorData:
 
     def step_forward(self) -> bool:
         action = False
-        if (self.index + self.sensor_window + self.step_delta_rate) < self.data_size:
+        if (self.index + self.sensor_window + self.step_delta_rate) <= self.data_size:
             self.index += self.step_delta_rate
             action = True
         return action
