@@ -147,6 +147,96 @@ class FullSensorData:
             self.sensor_data[i][LABEL_FIELD] = data_window.label
         return
 
+    def get_label_text(self) -> str:
+        msg = ''
+        labels = list()
+        labels.append('> {}  {}\n'.format(str(self.sensor_data[self.index]['stamp']),
+                                          self.sensor_data[self.index][LABEL_FIELD]))
+        labels.append('\n')
+        current_label = str(self.sensor_data[self.index][LABEL_FIELD])
+        i = self.index
+        added_dots = False
+        while i > 0 and len(labels) < 10:
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
+                label = self.sensor_data[i][LABEL_FIELD]
+                if label is None:
+                    label = ''
+                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+                current_label = str(self.sensor_data[i][LABEL_FIELD])
+                added_dots = False
+            elif not added_dots:
+                added_dots = True
+                labels.append('    ...    \n')
+            i -= 1
+
+        labels.reverse()
+        labels.append('> {}  {}\n'.format(str(self.sensor_data[self.index]['stamp']),
+                                          self.sensor_data[self.index][LABEL_FIELD]))
+        labels.append('\n')
+        i = self.index
+        added_dots = False
+        while i < self.data_size and len(labels) < 20:
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
+                label = self.sensor_data[i][LABEL_FIELD]
+                if label is None:
+                    label = ''
+                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+                current_label = str(self.sensor_data[i][LABEL_FIELD])
+                added_dots = False
+            elif not added_dots:
+                added_dots = True
+                labels.append('    ...    \n')
+            i += 1
+
+        for line in labels:
+            msg += line
+        return msg
+
+    def get_given_label_text(self, data_window: SingleDataWindow) -> str:
+        msg = ''
+        labels = list()
+        i = data_window.i_start
+        labels.append('> {}  {}\n'.format(str(self.sensor_data[i]['stamp']),
+                                          self.sensor_data[i][LABEL_FIELD]))
+        labels.append('\n')
+        current_label = str(self.sensor_data[i][LABEL_FIELD])
+        added_dots = False
+        while i > 0 and len(labels) < 10:
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
+                label = self.sensor_data[i][LABEL_FIELD]
+                if label is None:
+                    label = ''
+                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+                current_label = str(self.sensor_data[i][LABEL_FIELD])
+                added_dots = False
+            elif not added_dots:
+                added_dots = True
+                labels.append('    ...    \n')
+            i -= 1
+
+        labels.reverse()
+        i = data_window.i_last
+        labels.append('> {}  {}\n'.format(str(self.sensor_data[i]['stamp']),
+                                          self.sensor_data[i][LABEL_FIELD]))
+        labels.append('\n')
+        added_dots = False
+        while i < self.data_size and len(labels) < 20:
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
+                label = self.sensor_data[i][LABEL_FIELD]
+                if label is None:
+                    label = ''
+                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+                current_label = str(self.sensor_data[i][LABEL_FIELD])
+                added_dots = False
+            elif not added_dots:
+                added_dots = True
+                labels.append('    ...    \n')
+            i += 1
+
+        for line in labels:
+            msg += line
+        return msg
+
     def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3):
         # Save the current settings to restore after plotting.
         tmp_sensor_window = self.sensor_window

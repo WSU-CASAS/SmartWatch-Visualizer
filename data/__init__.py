@@ -163,6 +163,18 @@ class WatchData:
         self.full_data.annotate_given_window(data_window=data_window)
         return
 
+    def get_label_text(self) -> str:
+        msg = '...'
+        if self.mode == MODE_SENSORS and self.has_sensors_data():
+            msg = self.full_data.get_label_text()
+        return msg
+
+    def get_given_label_text(self, data_window: SingleDataWindow) -> str:
+        msg = '...'
+        if self.mode == MODE_SENSORS and self.has_sensors_data():
+            msg = self.full_data.get_given_label_text(data_window=data_window)
+        return msg
+
     def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3, axis=None):
         if self.has_sensors_data():
             self.full_data.plot_given_window(data_window=data_window,

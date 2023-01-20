@@ -333,6 +333,8 @@ class SmartWatchVisualizer:
             self.canvas.flush_events()
             self.canvas2.draw_idle()
             self.canvas2.flush_events()
+            self.lbl_labels.set_text(self.data.get_given_label_text(
+                data_window=self.data_windows.list[self.data_windows.index]))
         else:
             if self.data.has_data():
                 self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
@@ -353,6 +355,7 @@ class SmartWatchVisualizer:
                                        axis3=self.axes3)
                 self.canvas2.draw_idle()
                 self.canvas2.flush_events()
+                self.lbl_labels.set_text(self.data.get_label_text())
         self.pop_status_message(context_id=1)
         return
 
@@ -540,6 +543,9 @@ class SmartWatchVisualizer:
                     self.data.set_mode(mode=MODE_GPS)
                     self.need_redraw = True
                     self.update_visible_state()
+                    if self.labels_win is not None:
+                        self.labels_win.hide()
+                        self.labels_win = None
             elif mode == MODE_SENSOR_VISUALIZATION:
                 if self.data.has_sensors_data():
                     # Go ahead and set to sensors mode.
@@ -555,6 +561,12 @@ class SmartWatchVisualizer:
                     # self.timer = GLib.timeout_add(100, self.timer_tick)
                     self.need_redraw = True
                     self.build_data_windows()
+            if mode in [MODE_SENSOR_VISUALIZATION, MODE_ANNOTATION_HELP]:
+                if self.labels_win is None:
+                    self.labels_win = Gtk.Window(destroy_with_parent=True,
+                                                 title='Labels')
+                    self.labels_win.add(self.scrolled_win)
+                    self.labels_win.show_all()
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)
@@ -635,6 +647,11 @@ class SmartWatchVisualizer:
         # self.settings = Gtk.Window(transient_for=self.window,
         #                            destroy_with_parent=True,
         #                            title='Edit Settings')
+        self.labels_win = None
+        self.lbl_labels = Gtk.Label(label='Label Window')
+        self.lbl_labels.set_justify(Gtk.Justification.LEFT)
+        self.scrolled_win = Gtk.ScrolledWindow()
+        self.scrolled_win.add(self.lbl_labels)
 
         # Create boxes for packing self.window.
         self.vbox1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
