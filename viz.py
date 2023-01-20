@@ -545,7 +545,6 @@ class SmartWatchVisualizer:
                     self.update_visible_state()
                     if self.labels_win is not None:
                         self.labels_win.hide()
-                        self.labels_win = None
             elif mode == MODE_SENSOR_VISUALIZATION:
                 if self.data.has_sensors_data():
                     # Go ahead and set to sensors mode.
@@ -566,6 +565,8 @@ class SmartWatchVisualizer:
                     self.labels_win = Gtk.Window(destroy_with_parent=True,
                                                  title='Labels')
                     self.labels_win.add(self.scrolled_win)
+                    self.labels_win.show_all()
+                else:
                     self.labels_win.show_all()
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)

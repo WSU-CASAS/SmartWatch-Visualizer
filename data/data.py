@@ -44,6 +44,9 @@ class FullSensorData:
             user_acceleration_y,user_acceleration_z,latitude,longitude,altitude,course,speed,
             horizontal_accuracy,vertical_accuracy,battery_state,user_activity_label,is_gps_valid
         dt,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,f,s,s,s
+
+        Errands, Exercise, Hobby, Housework, Hygiene, Mealtime, Other, Relax, Sleep,
+        Socialize, Travel, Work
         """
         self.has_data = False
         self.data_has_changed = False
