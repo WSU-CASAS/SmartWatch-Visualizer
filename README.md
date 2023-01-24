@@ -33,7 +33,7 @@ In anaconda run:
 ```
 conda config --add channels conda-forge
 conda config --set channel_priority strict
-conda create --name smartwatchviz python=3.10 gtk3.24.36 matplotlib=3.6.2 geopandas=0.12.2 contextily=1.2.0 pygobject=3.42.2
+conda create --name smartwatchviz python=3.10 gtk3=3.24.36 matplotlib=3.6.2 geopandas=0.12.2 contextily=1.2.0 pygobject=3.42.2
 ```
 
 ### MacOS
