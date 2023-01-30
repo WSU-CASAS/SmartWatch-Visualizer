@@ -272,7 +272,7 @@ class SmartWatchVisualizer:
                 self.STATE = MODE_SENSOR_VISUALIZATION
                 self.data.set_mode(mode=MODE_SENSORS)
                 self.mode_sensor_item.set_active(True)
-            self.data.set_config_obj(wconfig=self.config)
+            self.data.update_config(wconfig=self.config)
             GLib.idle_add(self.set_status_message, 'Ready')
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.update_visible_state)
