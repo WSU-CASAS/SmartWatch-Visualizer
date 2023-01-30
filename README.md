@@ -25,8 +25,14 @@ pip3 install geopandas matplotlib contextily
 1. Go to http://www.msys2.org/ and download the x86_64 installer
 2. Follow the instructions on the page for setting up the basic environment
 3. Run `C:\msys64\mingw64.exe` - a terminal window should pop up
-4. Execute `pacman -Suy` (you might need to do this a couple of times for all updates)
-5. Execute `pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python3-pip mingw-w64-x86_64-python3-matplotlib mingw-w64-x86_64-python3-pandas`
+4. In the terminal window, execute this command (you might need to do this a couple of times for all updates)
+```commandline
+pacman -Suy
+```
+5. In the terminal window, execute this command (you can copy the text then right click on the terminal to select paste)
+```commandline
+pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python3-gobject mingw-w64-x86_64-python3-pip mingw-w64-x86_64-python3-matplotlib mingw-w64-x86_64-python3-pandas
+```
 6. To test that GTK 3 is working you can run `gtk3-demo`
 7. Download and install Anaconda https://www.anaconda.com/products/distribution#Downloads
 8. Open the Anaconda Prompt (`Start->Anaconda3 (64-bit)->Anaconda Prompt`)
