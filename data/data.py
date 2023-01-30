@@ -35,6 +35,7 @@ GPS_VALID_DICT = dict({'0': False,
                        '1': True,
                        True: '1'})
 LABEL_FIELD = 'user_activity_label'
+NOTE_FIELD = 'notes'
 
 
 class FullSensorData:
@@ -326,6 +327,10 @@ class FullSensorData:
             if GPS_VALID_FIELD not in self.fields:
                 has_gps_valid = False
                 self.fields[GPS_VALID_FIELD] = 's'
+            has_notes = True
+            if NOTE_FIELD not in self.fields:
+                has_notes = False
+                self.fields[NOTE_FIELD] = 's'
             count = 0
             cur_lat = -1.0
             cur_lon = -1.0
@@ -341,6 +346,8 @@ class FullSensorData:
                     row[LABEL_FIELD] = None
                 if not has_gps_valid:
                     row[GPS_VALID_FIELD] = GPS_VALID_DICT[DEFAULT_IS_VALID]
+                if not has_notes:
+                    row[NOTE_FIELD] = None
 
                 labels.add(row[LABEL_FIELD])
                 if row[LABEL_FIELD] is not None:
