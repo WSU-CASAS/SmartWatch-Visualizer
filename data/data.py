@@ -151,6 +151,14 @@ class FullSensorData:
             self.sensor_data[i][LABEL_FIELD] = data_window.label
         return
 
+    def add_note(self, msg: str):
+        self.data_has_changed = True
+        i = self.index + self.sensor_window
+        self.sensor_data[i][NOTE_FIELD] = msg
+        if msg == '':
+            self.sensor_data[i][NOTE_FIELD] = None
+        return
+
     def get_label_text(self) -> str:
         msg = ''
         labels = list()
@@ -307,6 +315,10 @@ class FullSensorData:
 
     def load_data(self, filename: str, gps_data: WatchGPSData, update_callback=None,
                   done_callback=None):
+        fsize = -1
+        with open(filename, 'r') as mdata:
+            for line in mdata:
+                fsize += 1
         del self.sensor_data
         self.sensor_data = list()
         self.has_data = False
@@ -337,7 +349,8 @@ class FullSensorData:
             for row in mdata.rows_dict:
                 if (count % 1000) == 0:
                     msg = 'Loading file...\n'
-                    msg += '{} rows loaded\n'.format(count)
+                    percent = float(int(1000.0 * float(count) / float(fsize))) / 10.0
+                    msg += '{}% complete. {} of {} rows loaded\n'.format(percent, count, fsize)
                     msg += 'At stamp: {}'.format(str(row['stamp']))
                     if update_callback is not None:
                         update_callback(msg)

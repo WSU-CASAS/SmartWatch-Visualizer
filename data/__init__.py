@@ -163,6 +163,11 @@ class WatchData:
         self.full_data.annotate_given_window(data_window=data_window)
         return
 
+    def add_note(self, msg: str):
+        if self.mode == MODE_SENSORS and self.has_sensors_data():
+            self.full_data.add_note(msg=msg)
+        return
+
     def get_label_text(self) -> str:
         msg = '...'
         if self.mode == MODE_SENSORS and self.has_sensors_data():
@@ -182,6 +187,12 @@ class WatchData:
                                              axis2=axis2,
                                              axis3=axis3)
         if self.has_gps_data() and axis is not None:
+            self.gps_data.plot_given_window(data_window=data_window,
+                                            axis=axis)
+        return
+
+    def plot_given_gps(self, data_window: SingleDataWindow, axis):
+        if self.has_gps_data():
             self.gps_data.plot_given_window(data_window=data_window,
                                             axis=axis)
         return

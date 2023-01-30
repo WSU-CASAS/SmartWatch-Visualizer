@@ -339,6 +339,7 @@ class SmartWatchVisualizer:
             if self.data.has_data():
                 self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
             if self.mode_gps_item.get_active():
+                # The STATE is MODE_GPS_VISUALIZATION
                 self.ax.cla()
                 self.data.plot_gps(self.ax)
                 self.ax.set_axis_off()
@@ -346,6 +347,20 @@ class SmartWatchVisualizer:
                 self.canvas.draw_idle()
                 self.canvas.flush_events()
             else:
+                # If the GPS button is pressed, also plot the GPS given window.
+                if self.gps_toggle_button.get_active():
+                    self.ax.cla()
+                    # do call to draw here.
+                    sdw = SingleDataWindow(i_start=self.data.full_data.index,
+                                           i_last=(self.data.full_data.index +
+                                                   self.data.full_data.sensor_window),
+                                           label='')
+                    self.data.plot_given_gps(data_window=sdw,
+                                             axis=self.ax)
+                    self.data.plot_gps(self.ax)
+                    self.ax.set_axis_off()
+                    self.canvas.draw_idle()
+                    self.canvas.flush_events()
                 # print('draw for sensors')
                 self.axes1.cla()
                 self.axes2.cla()
@@ -478,6 +493,7 @@ class SmartWatchVisualizer:
             self.mode_annotation_item.set_sensitive(False)
         elif self.STATE == MODE_GPS_VISUALIZATION:
             self.hbox1.show()
+            self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
             self.spinner.hide()
@@ -492,11 +508,15 @@ class SmartWatchVisualizer:
             self.mode_annotation_item.set_sensitive(True)
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             self.hbox1.show()
+            self.gps_toggle_button.show()
             self.eventbox.show()
             self.spinner.stop()
             self.spinner.hide()
             self.lbl_loading_file.hide()
-            self.canvas.hide()
+            if self.gps_toggle_button.get_active():
+                self.canvas.show()
+            else:
+                self.canvas.hide()
             self.canvas2.show()
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(True)
@@ -506,6 +526,7 @@ class SmartWatchVisualizer:
             self.mode_annotation_item.set_sensitive(True)
         elif self.STATE == MODE_ANNOTATION_HELP:
             self.hbox1.show()
+            self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
             self.spinner.hide()
@@ -571,6 +592,14 @@ class SmartWatchVisualizer:
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)
+        return
+
+    def on_gps_button_toggled(self, widget, mode):
+        if self.STATE == MODE_SENSOR_VISUALIZATION:
+            if self.gps_toggle_button.get_active():
+                self.canvas.show()
+            else:
+                self.canvas.hide()
         return
 
     def build_data_windows(self):
@@ -721,10 +750,13 @@ class SmartWatchVisualizer:
         self.lbl_progress_current.set_justify(Gtk.Justification.CENTER)
         self.lbl_progress_end = Gtk.Label(label=str(datetime.datetime.now()))
         self.lbl_progress_end.set_justify(Gtk.Justification.RIGHT)
+        self.gps_toggle_button = Gtk.ToggleButton(label='GPS')
+        self.gps_toggle_button.set_active(True)
 
         self.hbox1.pack_start(self.lbl_progress_start, True, True, 0)
         self.hbox1.pack_start(self.lbl_progress_current, True, True, 0)
         self.hbox1.pack_start(self.lbl_progress_end, True, True, 0)
+        self.hbox1.pack_start(self.gps_toggle_button, False, True, 0)
 
         self.progress = Gtk.ProgressBar()
         self.progress.set_fraction(0.0)
@@ -773,6 +805,7 @@ class SmartWatchVisualizer:
         self.mode_sensor_item.connect('toggled', self.on_mode_toggled, MODE_SENSOR_VISUALIZATION)
         self.mode_annotation_item.connect('toggled', self.on_mode_toggled, MODE_ANNOTATION_HELP)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
+        self.gps_toggle_button.connect('toggled', self.on_gps_button_toggled, 'GPS')
         self.window.show_all()
         self.update_visible_state()
         return
