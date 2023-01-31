@@ -42,6 +42,22 @@ MODE_SAVING_FILE = 3
 MODE_SENSOR_VISUALIZATION = 4
 MODE_ANNOTATION_HELP = 5
 
+CSS = b"""
+progressbar trough, progress {
+  min-height: 15px;
+  border-radius: 2px;
+}
+
+"""
+style_provider = Gtk.CssProvider()
+style_provider.load_from_data(CSS)
+
+Gtk.StyleContext.add_provider_for_screen(
+    Gdk.Screen.get_default(),
+    style_provider,
+    Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+)
+
 
 class SmartWatchVisualizer:
     @staticmethod
@@ -493,6 +509,7 @@ class SmartWatchVisualizer:
             self.mode_annotation_item.set_sensitive(False)
         elif self.STATE == MODE_GPS_VISUALIZATION:
             self.hbox1.show()
+            self.add_note_button.hide()
             self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
@@ -508,6 +525,7 @@ class SmartWatchVisualizer:
             self.mode_annotation_item.set_sensitive(True)
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             self.hbox1.show()
+            self.add_note_button.show()
             self.gps_toggle_button.show()
             self.eventbox.show()
             self.spinner.stop()
@@ -526,6 +544,7 @@ class SmartWatchVisualizer:
             self.mode_annotation_item.set_sensitive(True)
         elif self.STATE == MODE_ANNOTATION_HELP:
             self.hbox1.show()
+            self.add_note_button.hide()
             self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
@@ -600,6 +619,49 @@ class SmartWatchVisualizer:
                 self.canvas.show()
             else:
                 self.canvas.hide()
+        return
+
+    def cb_add_note_button(self, widget):
+        if self.note_win is not None:
+            self.note_win.hide()
+            self.note_win = None
+
+        print('add note button clicked')
+        self.note_win = Gtk.Window(transient_for=self.window,
+                                   destroy_with_parent=True,
+                                   title='Add Note')
+        self.note_win.set_border_width(10)
+        # Main box of the window.
+        main_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        self.note_win.add(main_box)
+        self.note_text = Gtk.Entry()
+        main_box.pack_start(self.note_text, True, True, 0)
+
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=100)
+        main_box.pack_start(hbox, True, True, 0)
+        btn_ok = Gtk.Button(label='OK')
+        btn_cancel = Gtk.Button(label='Cancel')
+        hbox.pack_start(btn_ok, False, True, 0)
+        hbox.pack_start(btn_cancel, False, True, 0)
+
+        btn_ok.connect('clicked', self.cb_note_button, 'Ok')
+        btn_cancel.connect('clicked', self.cb_note_button, 'Cancel')
+
+        self.note_win.show_all()
+        return
+
+    def cb_note_button(self, widget, value):
+        if value == 'Cancel':
+            self.note_win.hide()
+            self.note_win = None
+        elif value == 'Ok':
+            self.note_win.hide()
+            msg = self.note_text.get_text()
+            self.data.add_note(msg=msg)
+            self.note_win = None
+            if not self.data_modified:
+                self.data_modified = True
+                GLib.idle_add(self.set_modified_title)
         return
 
     def build_data_windows(self):
@@ -678,6 +740,8 @@ class SmartWatchVisualizer:
         #                            destroy_with_parent=True,
         #                            title='Edit Settings')
         self.labels_win = None
+        self.note_win = None
+        self.note_text = None
         self.lbl_labels = Gtk.Label(label='Label Window')
         self.lbl_labels.set_justify(Gtk.Justification.LEFT)
         self.scrolled_win = Gtk.ScrolledWindow()
@@ -744,6 +808,7 @@ class SmartWatchVisualizer:
 
         self.menu_bar.append(self.mode_item)
 
+        self.add_note_button = Gtk.Button(label='Add Note')
         self.lbl_progress_start = Gtk.Label(label=str(datetime.datetime.now()))
         self.lbl_progress_start.set_justify(Gtk.Justification.LEFT)
         self.lbl_progress_current = Gtk.Label(label=str(datetime.datetime.now()))
@@ -753,6 +818,7 @@ class SmartWatchVisualizer:
         self.gps_toggle_button = Gtk.ToggleButton(label='GPS')
         self.gps_toggle_button.set_active(True)
 
+        self.hbox1.pack_start(self.add_note_button, False, True, 0)
         self.hbox1.pack_start(self.lbl_progress_start, True, True, 0)
         self.hbox1.pack_start(self.lbl_progress_current, True, True, 0)
         self.hbox1.pack_start(self.lbl_progress_end, True, True, 0)
@@ -805,6 +871,7 @@ class SmartWatchVisualizer:
         self.mode_sensor_item.connect('toggled', self.on_mode_toggled, MODE_SENSOR_VISUALIZATION)
         self.mode_annotation_item.connect('toggled', self.on_mode_toggled, MODE_ANNOTATION_HELP)
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
+        self.add_note_button.connect('clicked', self.cb_add_note_button)
         self.gps_toggle_button.connect('toggled', self.on_gps_button_toggled, 'GPS')
         self.window.show_all()
         self.update_visible_state()
