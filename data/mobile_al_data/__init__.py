@@ -98,7 +98,7 @@ class MobileData:
 
             self.read_headers()  # also read the headers of the file to get fields
         else:
-            self.csv = csv.writer(self.f)
+            self.csv = csv.writer(self.f, quoting=csv.QUOTE_MINIMAL)
 
     def close(self):
         """Close the underlying file."""
