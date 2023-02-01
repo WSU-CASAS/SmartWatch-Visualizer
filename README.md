@@ -24,8 +24,8 @@ pip3 install geopandas matplotlib contextily
 ### Windows
 1. Go to http://www.msys2.org/ and download the x86_64 installer
 2. Follow the instructions on the page for setting up the basic environment
-3. Run `C:\msys64\mingw64.exe` - a terminal window should pop up
-4. In the terminal window, execute this command (you might need to do this a couple of times for all updates)
+3. Run MINGW64 (`Start`->`MSYS2`->`MSYS2 MINGW64`) - a terminal window should pop up
+4. In the terminal window, execute this command (you might need to do this twice for all updates, it may ask you to close the window to apply changes, do so and then open the program again)
 ```commandline
 pacman -Suy
 ```
