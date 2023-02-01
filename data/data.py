@@ -58,6 +58,11 @@ class FullSensorData:
         self.fields = None
         self.window_size_adj_rate = 10
         self.step_delta_rate = 10
+        self.ann_set = set()
+        self.ann_list = list()
+        self.ann_y = dict()
+        self.ann_colors = dict()
+        self.color_map = list()
         return
 
     def update_config(self, wconfig: VizConfig):
@@ -143,12 +148,16 @@ class FullSensorData:
         self.data_has_changed = True
         for i in range(self.index, self.index + self.sensor_window):
             self.sensor_data[i][LABEL_FIELD] = annotation
+        self.ann_set.add(annotation)
+        self.update_ann_list()
         return
 
     def annotate_given_window(self, data_window: SingleDataWindow):
         self.data_has_changed = True
         for i in range(data_window.i_start, data_window.i_last + 1):
             self.sensor_data[i][LABEL_FIELD] = data_window.label
+        self.ann_set.add(data_window.label)
+        self.update_ann_list()
         return
 
     def add_note(self, msg: str):
@@ -249,7 +258,7 @@ class FullSensorData:
             msg += line
         return msg
 
-    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3):
+    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3, axis4):
         # Save the current settings to restore after plotting.
         tmp_sensor_window = self.sensor_window
         tmp_index = self.index
@@ -259,46 +268,78 @@ class FullSensorData:
         # Now call the plot function.
         self.plot_sensors(axis1=axis1,
                           axis2=axis2,
-                          axis3=axis3)
+                          axis3=axis3,
+                          axis4=axis4)
 
         # Restore the settings.
         self.sensor_window = tmp_sensor_window
         self.index = tmp_index
         return
 
-    def plot_sensors(self, axis1, axis2, axis3):
+    def plot_sensors(self, axis1, axis2, axis3, axis4):
         x = np.array(list(range(self.sensor_window)))
         index_range = list(range(self.index, self.index + self.sensor_window))
+        # Annotations or notes.
+        ann_x = list()
+        ann_y = list()
+        ann_color = list()
+        ann_found = False
+        note_x = list()
+        note_y = list()
+        note_found = False
+        zero = list()
+        for j, i in enumerate(index_range):
+            zero.append(-0.5)
+            if self.sensor_data[i][LABEL_FIELD] is not None:
+                ann_x.append(j)
+                ann_y.append(self.ann_y[self.sensor_data[i][LABEL_FIELD]])
+                ann_color.append(self.ann_colors[self.sensor_data[i][LABEL_FIELD]])
+                ann_found = True
+            if self.sensor_data[i][NOTE_FIELD] is not None:
+                note_x.append(j)
+                note_y.append(-1)
+                note_found = True
+        axis1.scatter(x, np.array(zero), color='white', marker='.')
+        if ann_found:
+            axis1.scatter(ann_x, ann_y, s=80, c=ann_color, marker='|')
+        for key in list(self.ann_y.keys()):
+            axis1.annotate(key, xy=(0, self.ann_y[key]), color=self.ann_colors[key])
+        if note_found:
+            axis1.scatter(note_x, note_y, s=80, c='green', marker='^')
+        axis1.autoscale_view()
+        axis1.set_ylabel(ylabel='labels')
+        axis1.set_ylim(bottom=-1, top=len(self.ann_colors))
+
         # yaw, pitch, roll
         yaw = np.array([self.sensor_data[i]['yaw'] for i in index_range])
         pitch = np.array([self.sensor_data[i]['pitch'] for i in index_range])
         roll = np.array([self.sensor_data[i]['roll'] for i in index_range])
-        axis1.plot(x, yaw, label='yaw')
-        axis1.plot(x, pitch, label='pitch')
-        axis1.plot(x, roll, label='roll')
-        self.adjust_axes(axis=axis1,
+        axis2.plot(x, yaw, label='yaw')
+        axis2.plot(x, pitch, label='pitch')
+        axis2.plot(x, roll, label='roll')
+        self.adjust_axes(axis=axis2,
                          label='yaw/pitch/roll')
 
         # rotation_rate_x, rotation_rate_y, rotation_rate_z
         rotation_rate_x = np.array([self.sensor_data[i]['rotation_rate_x'] for i in index_range])
         rotation_rate_y = np.array([self.sensor_data[i]['rotation_rate_y'] for i in index_range])
         rotation_rate_z = np.array([self.sensor_data[i]['rotation_rate_z'] for i in index_range])
-        axis2.plot(x, rotation_rate_x, label='x')
-        axis2.plot(x, rotation_rate_y, label='y')
-        axis2.plot(x, rotation_rate_z, label='z')
-        self.adjust_axes(axis=axis2,
+        axis3.plot(x, rotation_rate_x, label='x')
+        axis3.plot(x, rotation_rate_y, label='y')
+        axis3.plot(x, rotation_rate_z, label='z')
+        self.adjust_axes(axis=axis3,
                          label='rotation rate')
 
         # user_acceleration_x, user_acceleration_y, user_acceleration_z
         user_acc_x = np.array([self.sensor_data[i]['user_acceleration_x'] for i in index_range])
         user_acc_y = np.array([self.sensor_data[i]['user_acceleration_y'] for i in index_range])
         user_acc_z = np.array([self.sensor_data[i]['user_acceleration_z'] for i in index_range])
-        axis3.plot(x, user_acc_x, label='x')
-        axis3.plot(x, user_acc_y, label='y')
-        axis3.plot(x, user_acc_z, label='z')
-        self.adjust_axes(axis=axis3,
+        axis4.plot(x, user_acc_x, label='x')
+        axis4.plot(x, user_acc_y, label='y')
+        axis4.plot(x, user_acc_z, label='z')
+        self.adjust_axes(axis=axis4,
                          label='user acceleration')
-        axis3.set_xlabel(xlabel='{}  ->  {}  (NOW)'.format(
+        axis4.set_xlabel(xlabel='{}  ->  {}  (NOW)'.format(
             str(self.sensor_data[self.index]['stamp']),
             str(self.sensor_data[self.index + self.sensor_window - 1]['stamp'])))
         return
@@ -313,6 +354,21 @@ class FullSensorData:
         axis.legend(loc='upper left')
         return
 
+    def update_ann_list(self):
+        # This assumes you have added any possible new value to the set already.
+        del self.ann_list
+        self.ann_list = list(self.ann_set)
+        self.ann_list.sort()
+        del self.ann_colors
+        self.ann_colors = dict()
+        del self.ann_y
+        self.ann_y = dict()
+        ann_len = len(self.ann_list) - 1
+        for i, ann in enumerate(self.ann_list):
+            self.ann_colors[ann] = self.color_map[i % len(self.color_map)]
+            self.ann_y[ann] = i
+        return
+
     def load_data(self, filename: str, gps_data: WatchGPSData, update_callback=None,
                   done_callback=None):
         fsize = -1
@@ -321,12 +377,19 @@ class FullSensorData:
                 fsize += 1
         del self.sensor_data
         self.sensor_data = list()
+        del self.ann_set
+        self.ann_set = set()
+        del self.ann_list
+        self.ann_list = list()
+        del self.ann_colors
+        self.ann_colors = dict()
+        del self.ann_y
+        self.ann_y = dict()
         self.has_data = False
         self.data_has_changed = False
         self.index = 0
         self.data_size = 0
         self.sensor_window = DEFAULT_SENSOR_WINDOW
-        labels = set()
         gps_data.load_data_init()
         with MobileData(filename, 'r') as mdata:
             del self.fields
@@ -362,8 +425,8 @@ class FullSensorData:
                 if not has_notes:
                     row[NOTE_FIELD] = None
 
-                labels.add(row[LABEL_FIELD])
                 if row[LABEL_FIELD] is not None:
+                    self.ann_set.add(row[LABEL_FIELD])
                     print(str(row['stamp']), row[LABEL_FIELD])
 
                 # Add copy of row to our sensor data.
@@ -390,7 +453,8 @@ class FullSensorData:
                         gps_data.gps_data[-1].last_index = count
                 count += 1
 
-        print(labels)
+        self.update_ann_list()
+        print(self.ann_list)
         if len(self.sensor_data) > 0:
             gps_data.load_data_end()
             self.data_size = len(self.sensor_data)

@@ -28,6 +28,7 @@ import threading
 from matplotlib.backends.backend_gtk3agg import FigureCanvas  # or gtk3cairo.
 from matplotlib.figure import Figure
 import matplotlib.style as mplstyle
+import matplotlib.pyplot as plt
 from data import WatchData
 from data.config import VizConfig
 from data import MODE_GPS, MODE_SENSORS
@@ -57,6 +58,7 @@ Gtk.StyleContext.add_provider_for_screen(
     style_provider,
     Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 )
+COLORS = plt.rcParams['axes.prop_cycle'].by_key()['color']
 
 
 class SmartWatchVisualizer:
@@ -339,10 +341,12 @@ class SmartWatchVisualizer:
             self.axes1.cla()
             self.axes2.cla()
             self.axes3.cla()
+            self.axes4.cla()
             self.data.plot_given_window(data_window=self.data_windows.list[self.data_windows.index],
                                         axis1=self.axes1,
                                         axis2=self.axes2,
                                         axis3=self.axes3,
+                                        axis4=self.axes4,
                                         axis=self.ax)
             self.ax.set_axis_off()
             self.canvas.draw_idle()
@@ -381,9 +385,11 @@ class SmartWatchVisualizer:
                 self.axes1.cla()
                 self.axes2.cla()
                 self.axes3.cla()
+                self.axes4.cla()
                 self.data.plot_sensors(axis1=self.axes1,
                                        axis2=self.axes2,
-                                       axis3=self.axes3)
+                                       axis3=self.axes3,
+                                       axis4=self.axes4)
                 self.canvas2.draw_idle()
                 self.canvas2.flush_events()
                 self.lbl_labels.set_text(self.data.get_label_text())
@@ -476,6 +482,7 @@ class SmartWatchVisualizer:
                 if not self.data_modified:
                     self.data_modified = True
                     GLib.idle_add(self.set_modified_title)
+                self.need_redraw = True
         return True
 
     def update_visible_state(self):
@@ -708,6 +715,7 @@ class SmartWatchVisualizer:
         self.config.load_config(filename='config.conf')
         self.STATE = MODE_FIRST_WINDOW
         self.data = WatchData()
+        self.data.full_data.color_map = list(COLORS)
         self.opened_filename = None
         self.need_redraw = False
         self.timer = None
@@ -853,9 +861,10 @@ class SmartWatchVisualizer:
         fig2 = Figure(figsize=(32, 32))
         self.canvas2 = FigureCanvas(fig2)
         self.vbox1.pack_start(self.canvas2, True, True, 0)
-        self.axes1 = fig2.add_subplot(3, 1, 1)
-        self.axes2 = fig2.add_subplot(3, 1, 2)
-        self.axes3 = fig2.add_subplot(3, 1, 3)
+        self.axes1 = fig2.add_subplot(4, 1, 1)
+        self.axes2 = fig2.add_subplot(4, 1, 2)
+        self.axes3 = fig2.add_subplot(4, 1, 3)
+        self.axes4 = fig2.add_subplot(4, 1, 4)
         fig2.subplots_adjust(hspace=0)
 
         self.status_bar = Gtk.Statusbar()

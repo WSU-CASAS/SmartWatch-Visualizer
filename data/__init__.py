@@ -180,12 +180,14 @@ class WatchData:
             msg = self.full_data.get_given_label_text(data_window=data_window)
         return msg
 
-    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3, axis=None):
+    def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3, axis4,
+                          axis=None):
         if self.has_sensors_data():
             self.full_data.plot_given_window(data_window=data_window,
                                              axis1=axis1,
                                              axis2=axis2,
-                                             axis3=axis3)
+                                             axis3=axis3,
+                                             axis4=axis4)
         if self.has_gps_data() and axis is not None:
             self.gps_data.plot_given_window(data_window=data_window,
                                             axis=axis)
@@ -202,11 +204,12 @@ class WatchData:
             self.gps_data.plot_gps(axis=axis)
         return
 
-    def plot_sensors(self, axis1, axis2, axis3):
+    def plot_sensors(self, axis1, axis2, axis3, axis4):
         if self.mode == MODE_SENSORS:
             self.full_data.plot_sensors(axis1=axis1,
                                         axis2=axis2,
-                                        axis3=axis3)
+                                        axis3=axis3,
+                                        axis4=axis4)
         return
 
     def load_data(self, filename: str, update_callback=None, done_callback=None):
