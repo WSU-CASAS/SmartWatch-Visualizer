@@ -55,6 +55,21 @@ cd Documents/SmartWatch-Visualizer
 python viz.py
 ```
 
+#### Running in Windows
+1. Open the Anaconda Prompt (`Start->Anaconda3 (64-bit)->Anaconda Prompt`)
+2. Switch to our environment by running this command
+```commandline
+conda activate smartwatchviz
+```
+3. Change directories to the downloaded program directory
+```commandline
+cd Documents/SmartWatch-Visualizer
+```
+4. Run the program
+```commandline
+python viz.py
+```
+
 ### MacOS
 1. Go to https://brew.sh/ and install homebrew
 2. Open a terminal
