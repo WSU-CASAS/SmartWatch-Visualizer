@@ -90,7 +90,7 @@ class MobileData:
         Also sets up the headers and datatypes for the file based on the first two rows of the file.
         """
 
-        self.f = open(self.file_path, self.mode)
+        self.f = open(self.file_path, self.mode, newline='', encoding='utf-8')
 
         # Set up the appropriate CSV handler (read or write) for the file:
         if self.mode in self.read_modes:
