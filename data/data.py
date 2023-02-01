@@ -164,7 +164,7 @@ class FullSensorData:
 
     def add_note(self, msg: str):
         self.data_has_changed = True
-        i = self.index + self.sensor_window
+        i = self.index + self.sensor_window - 1
         self.sensor_data[i][NOTE_FIELD] = msg
         if msg == '':
             self.sensor_data[i][NOTE_FIELD] = None
@@ -173,11 +173,11 @@ class FullSensorData:
     def get_label_text(self) -> str:
         msg = ''
         labels = list()
-        labels.append('> {}  {}\n'.format(str(self.sensor_data[self.index]['stamp']),
-                                          self.sensor_data[self.index][LABEL_FIELD]))
+        i = self.index + self.sensor_window - 1
+        labels.append('> {}  {}\n'.format(str(self.sensor_data[i]['stamp']),
+                                          self.sensor_data[i][LABEL_FIELD]))
         labels.append('\n')
-        current_label = str(self.sensor_data[self.index][LABEL_FIELD])
-        i = self.index
+        current_label = str(self.sensor_data[i][LABEL_FIELD])
         added_dots = False
         while i > 0 and len(labels) < 10:
             if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
@@ -192,11 +192,10 @@ class FullSensorData:
                 labels.append('    ...    \n')
             i -= 1
 
+        i = self.index + self.sensor_window - 1
         labels.reverse()
-        labels.append('> {}  {}\n'.format(str(self.sensor_data[self.index]['stamp']),
-                                          self.sensor_data[self.index][LABEL_FIELD]))
         labels.append('\n')
-        i = self.index
+        current_label = str(self.sensor_data[i][LABEL_FIELD])
         added_dots = False
         while i < self.data_size and len(labels) < 20:
             if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
