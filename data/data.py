@@ -36,6 +36,8 @@ GPS_VALID_DICT = dict({'0': False,
                        True: '1'})
 LABEL_FIELD = 'user_activity_label'
 NOTE_FIELD = 'notes'
+BATTERY_FIELD = 'battery_state'
+BATTERY_CHARGING = 'charging'
 
 
 class FullSensorData:
@@ -287,6 +289,9 @@ class FullSensorData:
         note_x = list()
         note_y = list()
         note_found = False
+        batt_x = list()
+        batt_y = list()
+        batt_found = False
         zero = list()
         for j, i in enumerate(index_range):
             zero.append(-0.5)
@@ -299,6 +304,11 @@ class FullSensorData:
                 note_x.append(j)
                 note_y.append(-1)
                 note_found = True
+            if self.sensor_data[i][BATTERY_FIELD] is not None:
+                if self.sensor_data[i][BATTERY_FIELD] == BATTERY_CHARGING:
+                    batt_x.append(j)
+                    batt_y.append(-0.5)
+                    batt_found = True
         axis1.scatter(x, np.array(zero), color='white', marker='.')
         if ann_found:
             axis1.scatter(ann_x, ann_y, s=80, c=ann_color, marker='|')
@@ -306,6 +316,8 @@ class FullSensorData:
             axis1.annotate(key, xy=(0, self.ann_y[key]), color=self.ann_colors[key])
         if note_found:
             axis1.scatter(note_x, note_y, s=80, c='green', marker='^')
+        if batt_found:
+            axis1.scatter(batt_x, batt_y, s=5, c='red', marker='>')
         axis1.autoscale_view()
         axis1.set_ylabel(ylabel='labels')
         axis1.set_ylim(bottom=-1, top=len(self.ann_colors))
