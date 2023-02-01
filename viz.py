@@ -615,6 +615,7 @@ class SmartWatchVisualizer:
                     self.labels_win.show_all()
                 else:
                     self.labels_win.show_all()
+                self.labels_win.connect('key-press-event', self.on_key_press_event)
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)
