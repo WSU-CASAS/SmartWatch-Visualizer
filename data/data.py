@@ -438,7 +438,7 @@ class FullSensorData:
 
                 if row[LABEL_FIELD] is not None:
                     self.ann_set.add(row[LABEL_FIELD])
-                    print(str(row['stamp']), row[LABEL_FIELD])
+                    # print(str(row['stamp']), row[LABEL_FIELD])
 
                 # Add copy of row to our sensor data.
                 self.sensor_data.append(copy.deepcopy(row))

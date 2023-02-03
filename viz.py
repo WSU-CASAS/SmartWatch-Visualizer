@@ -283,6 +283,72 @@ class SmartWatchVisualizer:
         GLib.idle_add(self.set_clean_title)
         if self.data.has_data():
             if self.data.has_gps_data():
+                # Continue with loading GPS cache if there is GPS data.
+                GLib.idle_add(self.set_status_message, 'Downloading GPS Cache...')
+                GLib.idle_add(self.start_loading_gps_cache)
+            else:
+                # No GPS data, so jump straight to end function.
+                GLib.idle_add(self.done_loading_gps_cache)
+        else:
+            self.STATE = MODE_FIRST_WINDOW
+            GLib.idle_add(self.set_status_message, 'There is no data to visualize.')
+            GLib.idle_add(self.update_visible_state)
+        return
+
+    def start_loading_gps_cache(self):
+        self.canvas.show()
+        self.lbl_loading_file.hide()
+        self.data.gps_data.index = 0
+        self.data.gps_data.gps_window = 1
+        GLib.idle_add(self.launch_threaded_show_loading_gps_cache)
+        self.set_status_message(message='Downloading GPS Cache... Loop {} of 10'.format(
+            self.data.gps_data.gps_window))
+        return
+
+    def loading_gps_window_size_loop(self):
+        self.data.gps_data.index = 0
+        if self.data.gps_data.gps_window > 10:
+            # Done with the cache now, call the end function.
+            GLib.idle_add(self.done_loading_gps_cache)
+        else:
+            # We still have more to go.
+            if self.data.gps_data.increase_window_size():
+                # True means we were able to increase the window size.
+                # Call the show loop to iterate through the indexes.
+                GLib.idle_add(self.launch_threaded_show_loading_gps_cache)
+                self.set_status_message(message='Downloading GPS Cache... Loop {} of 10'.format(
+                    self.data.gps_data.gps_window))
+            else:
+                # We can't increase the window size, so call the end function.
+                GLib.idle_add(self.done_loading_gps_cache)
+        return
+
+    def launch_threaded_show_loading_gps_cache(self):
+        thread = threading.Thread(target=self.threaded_show_loading_gps_cache)
+        thread.daemon = True
+        thread.start()
+        return
+
+    def threaded_show_loading_gps_cache(self):
+        self.ax.cla()
+        self.data.gps_data.plot_gps(axis=self.ax)
+        self.ax.set_axis_off()
+        GLib.idle_add(self.show_loading_gps_cache)
+        return
+
+    def show_loading_gps_cache(self):
+        self.canvas.draw_idle()
+        if self.data.gps_data.step_forward():
+            # We stepped forward, this should be plotted next.
+            GLib.idle_add(self.launch_threaded_show_loading_gps_cache)
+        else:
+            # We reached the end, time for the next outer loop.
+            GLib.idle_add(self.loading_gps_window_size_loop)
+        return
+
+    def done_loading_gps_cache(self):
+        if self.data.has_data():
+            if self.data.has_gps_data():
                 self.STATE = MODE_GPS_VISUALIZATION
                 self.data.set_mode(mode=MODE_GPS)
                 self.mode_gps_item.set_active(True)
@@ -295,10 +361,6 @@ class SmartWatchVisualizer:
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.update_visible_state)
             GLib.idle_add(self.draw_canvas)
-        else:
-            self.STATE = MODE_FIRST_WINDOW
-            GLib.idle_add(self.set_status_message, 'There is no data to visualize.')
-            GLib.idle_add(self.update_visible_state)
         return
 
     def set_all_lbl_progress(self):
@@ -720,6 +782,7 @@ class SmartWatchVisualizer:
         self.opened_filename = None
         self.need_redraw = False
         self.timer = None
+        self.gps_timer = None
         self.data_windows = DataWindowList()
 
         self.title_clean = 'Smart Watch Visualizer'
