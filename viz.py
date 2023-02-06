@@ -42,6 +42,7 @@ MODE_GPS_VISUALIZATION = 2
 MODE_SAVING_FILE = 3
 MODE_SENSOR_VISUALIZATION = 4
 MODE_ANNOTATION_HELP = 5
+MODE_LOAD_GPS_CACHE = 6
 
 CSS = b"""
 progressbar trough, progress {
@@ -194,6 +195,7 @@ class SmartWatchVisualizer:
             thread.daemon = True
 
             self.set_status_message(message='Saving file...  This may take some time.')
+            self.previous_state = self.STATE
             self.STATE = MODE_SAVING_FILE
             self.update_visible_state()
 
@@ -208,6 +210,7 @@ class SmartWatchVisualizer:
         thread.daemon = True
 
         self.set_status_message(message='Saving file...  This may take some time.')
+        self.previous_state = self.STATE
         self.STATE = MODE_SAVING_FILE
         self.update_visible_state()
 
@@ -221,7 +224,7 @@ class SmartWatchVisualizer:
         return
 
     def callback_saving_file_done(self):
-        self.STATE = MODE_GPS_VISUALIZATION
+        self.STATE = self.previous_state
         self.data_modified = False
         GLib.idle_add(self.set_clean_title)
         GLib.idle_add(self.set_status_message, 'Ready')
@@ -283,21 +286,35 @@ class SmartWatchVisualizer:
         GLib.idle_add(self.set_clean_title)
         if self.data.has_data():
             if self.data.has_gps_data():
-                # Continue with loading GPS cache if there is GPS data.
-                GLib.idle_add(self.set_status_message, 'Downloading GPS Cache...')
-                GLib.idle_add(self.start_loading_gps_cache)
+                self.STATE = MODE_GPS_VISUALIZATION
+                self.data.set_mode(mode=MODE_GPS)
+                self.mode_gps_item.set_active(True)
             else:
-                # No GPS data, so jump straight to end function.
-                GLib.idle_add(self.done_loading_gps_cache)
+                self.STATE = MODE_SENSOR_VISUALIZATION
+                self.data.set_mode(mode=MODE_SENSORS)
+                self.mode_sensor_item.set_active(True)
+            self.data.update_config(wconfig=self.config)
+            GLib.idle_add(self.set_status_message, 'Ready')
+            GLib.idle_add(self.set_all_lbl_progress)
+            GLib.idle_add(self.update_visible_state)
+            GLib.idle_add(self.draw_canvas)
         else:
             self.STATE = MODE_FIRST_WINDOW
             GLib.idle_add(self.set_status_message, 'There is no data to visualize.')
             GLib.idle_add(self.update_visible_state)
         return
 
+    def on_load_gps_clicked(self, widget):
+        self.previous_state = self.STATE
+        self.STATE = MODE_LOAD_GPS_CACHE
+        # self.gps_cache_loaded = True
+        GLib.idle_add(self.update_visible_state)
+        GLib.idle_add(self.start_loading_gps_cache)
+        return
+
     def start_loading_gps_cache(self):
-        self.canvas.show()
-        self.lbl_loading_file.hide()
+        self.backup_values['index'] = self.data.gps_data.index
+        self.backup_values['gps_window'] = self.data.gps_data.gps_window
         self.data.gps_data.index = 0
         self.data.gps_data.gps_window = 1
         GLib.idle_add(self.launch_threaded_show_loading_gps_cache)
@@ -307,7 +324,7 @@ class SmartWatchVisualizer:
 
     def loading_gps_window_size_loop(self):
         self.data.gps_data.index = 0
-        if self.data.gps_data.gps_window > 10:
+        if self.data.gps_data.gps_window >= 10:
             # Done with the cache now, call the end function.
             GLib.idle_add(self.done_loading_gps_cache)
         else:
@@ -324,9 +341,7 @@ class SmartWatchVisualizer:
         return
 
     def launch_threaded_show_loading_gps_cache(self):
-        thread = threading.Thread(target=self.threaded_show_loading_gps_cache)
-        thread.daemon = True
-        thread.start()
+        GLib.idle_add(self.threaded_show_loading_gps_cache)
         return
 
     def threaded_show_loading_gps_cache(self):
@@ -337,6 +352,11 @@ class SmartWatchVisualizer:
         return
 
     def show_loading_gps_cache(self):
+        self.set_status_message(
+            message='Downloading GPS Cache... Loop {} of 10  Index {} of {}'.format(
+                self.data.gps_data.gps_window,
+                self.data.gps_data.index,
+                self.data.gps_data.data_size - self.data.gps_data.gps_window))
         self.canvas.draw_idle()
         if self.data.gps_data.step_forward():
             # We stepped forward, this should be plotted next.
@@ -347,20 +367,13 @@ class SmartWatchVisualizer:
         return
 
     def done_loading_gps_cache(self):
-        if self.data.has_data():
-            if self.data.has_gps_data():
-                self.STATE = MODE_GPS_VISUALIZATION
-                self.data.set_mode(mode=MODE_GPS)
-                self.mode_gps_item.set_active(True)
-            else:
-                self.STATE = MODE_SENSOR_VISUALIZATION
-                self.data.set_mode(mode=MODE_SENSORS)
-                self.mode_sensor_item.set_active(True)
-            self.data.update_config(wconfig=self.config)
-            GLib.idle_add(self.set_status_message, 'Ready')
-            GLib.idle_add(self.set_all_lbl_progress)
-            GLib.idle_add(self.update_visible_state)
-            GLib.idle_add(self.draw_canvas)
+        self.data.gps_data.index = self.backup_values['index']
+        self.data.gps_data.gps_window = self.backup_values['gps_window']
+        self.data.gps_data.update_gps_data_frame()
+        self.STATE = self.previous_state
+        GLib.idle_add(self.update_visible_state)
+        GLib.idle_add(self.set_status_message, 'Ready')
+        GLib.idle_add(self.draw_canvas)
         return
 
     def set_all_lbl_progress(self):
@@ -559,6 +572,7 @@ class SmartWatchVisualizer:
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
+            self.load_gps_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
             self.mode_annotation_item.set_sensitive(False)
@@ -573,6 +587,7 @@ class SmartWatchVisualizer:
             self.open_file_item.set_sensitive(False)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
+            self.load_gps_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
             self.mode_annotation_item.set_sensitive(False)
@@ -589,9 +604,30 @@ class SmartWatchVisualizer:
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(True)
             self.save_as_item.set_sensitive(True)
+            if self.data.has_gps_data() and not self.gps_cache_loaded:
+                self.load_gps_item.set_sensitive(True)
+            else:
+                self.load_gps_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(True)
             self.mode_sensor_item.set_sensitive(True)
             self.mode_annotation_item.set_sensitive(True)
+        elif self.STATE == MODE_LOAD_GPS_CACHE:
+            self.hbox1.hide()
+            self.add_note_button.hide()
+            self.gps_toggle_button.hide()
+            self.eventbox.show()
+            self.spinner.stop()
+            self.spinner.hide()
+            self.lbl_loading_file.hide()
+            self.canvas.show()
+            self.canvas2.hide()
+            self.open_file_item.set_sensitive(False)
+            self.save_item.set_sensitive(False)
+            self.save_as_item.set_sensitive(False)
+            self.load_gps_item.set_sensitive(False)
+            self.mode_gps_item.set_sensitive(False)
+            self.mode_sensor_item.set_sensitive(False)
+            self.mode_annotation_item.set_sensitive(False)
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             self.hbox1.show()
             self.add_note_button.show()
@@ -608,6 +644,10 @@ class SmartWatchVisualizer:
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(True)
             self.save_as_item.set_sensitive(True)
+            if self.data.has_gps_data() and not self.gps_cache_loaded:
+                self.load_gps_item.set_sensitive(True)
+            else:
+                self.load_gps_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(True)
             self.mode_sensor_item.set_sensitive(True)
             self.mode_annotation_item.set_sensitive(True)
@@ -624,6 +664,10 @@ class SmartWatchVisualizer:
             self.open_file_item.set_sensitive(True)
             self.save_item.set_sensitive(True)
             self.save_as_item.set_sensitive(True)
+            if self.data.has_gps_data() and not self.gps_cache_loaded:
+                self.load_gps_item.set_sensitive(True)
+            else:
+                self.load_gps_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(True)
             self.mode_sensor_item.set_sensitive(True)
             self.mode_annotation_item.set_sensitive(True)
@@ -638,6 +682,7 @@ class SmartWatchVisualizer:
             self.open_file_item.set_sensitive(False)
             self.save_item.set_sensitive(False)
             self.save_as_item.set_sensitive(False)
+            self.load_gps_item.set_sensitive(False)
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
             self.mode_annotation_item.set_sensitive(False)
@@ -784,6 +829,9 @@ class SmartWatchVisualizer:
         self.timer = None
         self.gps_timer = None
         self.data_windows = DataWindowList()
+        self.gps_cache_loaded = False
+        self.previous_state = self.STATE
+        self.backup_values = dict()
 
         self.title_clean = 'Smart Watch Visualizer'
         self.title_modified = '* Smart Watch Visualizer (file modified)'
@@ -837,11 +885,15 @@ class SmartWatchVisualizer:
         self.save_item.set_sensitive(False)
         self.save_as_item = Gtk.MenuItem(label='Save As')
         self.save_as_item.set_sensitive(False)
+        self.load_gps_item = Gtk.MenuItem(label='Load GPS Cache')
+        self.load_gps_item.set_sensitive(False)
 
         self.file_menu.append(self.open_file_item)
         self.file_menu.append(Gtk.SeparatorMenuItem())
         self.file_menu.append(self.save_item)
         self.file_menu.append(self.save_as_item)
+        self.file_menu.append(Gtk.SeparatorMenuItem())
+        self.file_menu.append(self.load_gps_item)
 
         self.file_item.set_submenu(self.file_menu)
 
@@ -939,6 +991,7 @@ class SmartWatchVisualizer:
         self.open_file_item.connect('activate', self.on_file_open_clicked)
         self.save_item.connect('activate', self.on_file_save_clicked)
         self.save_as_item.connect('activate', self.on_file_save_as_clicked)
+        self.load_gps_item.connect('activate', self.on_load_gps_clicked)
         self.settings_item.connect('activate', self.on_edit_settings_clicked)
         self.mode_gps_item.connect('toggled', self.on_mode_toggled, MODE_GPS_VISUALIZATION)
         self.mode_sensor_item.connect('toggled', self.on_mode_toggled, MODE_SENSOR_VISUALIZATION)
