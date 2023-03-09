@@ -34,7 +34,8 @@ GPS_VALID_DICT = dict({'0': False,
                        False: '0',
                        '1': True,
                        True: '1'})
-LABEL_FIELD = 'user_activity_label'
+USER_FIELD = 'user_activity_label'
+LABEL_FIELD = 'activity_label'
 NOTE_FIELD = 'notes'
 BATTERY_FIELD = 'battery_state'
 BATTERY_CHARGING = 'charging'
@@ -170,22 +171,47 @@ class FullSensorData:
             self.sensor_data[i][NOTE_FIELD] = None
         return
 
+    @staticmethod
+    def build_string_line(stamp: datetime.datetime, label: str, user_label: str) -> str:
+        msg = ''
+        if label is None:
+            label = ''
+        if user_label is None:
+            user_label = ''
+        msg = '{:30}  {:20} ({})\n'.format(str(stamp), label, user_label)
+        return msg
+
     def get_label_text(self) -> str:
         msg = ''
         labels = list()
         i = self.index + self.sensor_window - 1
-        labels.append('> {}  {}\n'.format(str(self.sensor_data[i]['stamp']),
-                                          self.sensor_data[i][LABEL_FIELD]))
+        label = self.build_string_line(stamp=self.sensor_data[i]['stamp'],
+                                       label=self.sensor_data[i][LABEL_FIELD],
+                                       user_label=self.sensor_data[i][USER_FIELD])
+        label = '> ' + label
+        labels.append(label)
         labels.append('\n')
         current_label = str(self.sensor_data[i][LABEL_FIELD])
+        current_user = str(self.sensor_data[i][USER_FIELD])
         added_dots = False
         while i > 0 and len(labels) < 10:
-            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
-                label = self.sensor_data[i][LABEL_FIELD]
-                if label is None:
-                    label = ''
-                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
+                    or str(self.sensor_data[i][USER_FIELD]) != current_user:
+                skip_label = False
+                # If the current labels are None and the last annotation label was None,
+                # then go ahead and skip adding this line (the last line was an isolated
+                # user label instance).
+                if self.sensor_data[i][LABEL_FIELD] is None \
+                        and self.sensor_data[i][USER_FIELD] is None \
+                        and current_label == str(None):
+                    skip_label = True
+                if not skip_label:
+                    labels.append(self.build_string_line(
+                        stamp=self.sensor_data[i]['stamp'],
+                        label=self.sensor_data[i][LABEL_FIELD],
+                        user_label=self.sensor_data[i][USER_FIELD]))
                 current_label = str(self.sensor_data[i][LABEL_FIELD])
+                current_user = str(self.sensor_data[i][USER_FIELD])
                 added_dots = False
             elif not added_dots:
                 added_dots = True
@@ -196,14 +222,26 @@ class FullSensorData:
         labels.reverse()
         labels.append('\n')
         current_label = str(self.sensor_data[i][LABEL_FIELD])
+        current_user = str(self.sensor_data[i][USER_FIELD])
         added_dots = False
         while i < self.data_size and len(labels) < 20:
-            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
-                label = self.sensor_data[i][LABEL_FIELD]
-                if label is None:
-                    label = ''
-                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
+                    or str(self.sensor_data[i][USER_FIELD]) != current_user:
+                skip_label = False
+                # If the current labels are None and the last annotation label was None,
+                # then go ahead and skip adding this line (the last line was an isolated
+                # user label instance).
+                if self.sensor_data[i][LABEL_FIELD] is None \
+                        and self.sensor_data[i][USER_FIELD] is None \
+                        and current_label == str(None):
+                    skip_label = True
+                if not skip_label:
+                    labels.append(self.build_string_line(
+                        stamp=self.sensor_data[i]['stamp'],
+                        label=self.sensor_data[i][LABEL_FIELD],
+                        user_label=self.sensor_data[i][USER_FIELD]))
                 current_label = str(self.sensor_data[i][LABEL_FIELD])
+                current_user = str(self.sensor_data[i][USER_FIELD])
                 added_dots = False
             elif not added_dots:
                 added_dots = True
@@ -281,6 +319,10 @@ class FullSensorData:
         x = np.array(list(range(self.sensor_window)))
         index_range = list(range(self.index, self.index + self.sensor_window))
         # Annotations or notes.
+        user_ann_x = list()
+        user_ann_y = list()
+        user_ann_color = list()
+        user_ann_found = False
         ann_x = list()
         ann_y = list()
         ann_color = list()
@@ -294,6 +336,11 @@ class FullSensorData:
         zero = list()
         for j, i in enumerate(index_range):
             zero.append(-0.5)
+            if self.sensor_data[i][USER_FIELD] is not None:
+                user_ann_x.append(j)
+                user_ann_y.append(self.ann_y[self.sensor_data[i][USER_FIELD]])
+                user_ann_color.append(self.ann_colors[self.sensor_data[i][USER_FIELD]])
+                user_ann_found = True
             if self.sensor_data[i][LABEL_FIELD] is not None:
                 ann_x.append(j)
                 ann_y.append(self.ann_y[self.sensor_data[i][LABEL_FIELD]])
@@ -317,6 +364,8 @@ class FullSensorData:
             axis1.scatter(note_x, note_y, s=80, c='green', marker='^')
         if batt_found:
             axis1.scatter(batt_x, batt_y, s=5, c='red', marker='>')
+        if user_ann_found:
+            axis1.scatter(user_ann_x, user_ann_y, s=140, c=user_ann_color, marker='o')
         axis1.autoscale_view()
         axis1.set_ylabel(ylabel='labels')
         axis1.set_ylim(bottom=-1, top=len(self.ann_colors))
@@ -405,6 +454,10 @@ class FullSensorData:
         with MobileData(filename, 'r') as mdata:
             del self.fields
             self.fields = copy.deepcopy(mdata.fields)
+            has_user = True
+            if USER_FIELD not in self.fields:
+                has_user = False
+                self.fields[USER_FIELD] = 's'
             has_label = True
             if LABEL_FIELD not in self.fields:
                 has_label = False
@@ -429,6 +482,8 @@ class FullSensorData:
                     if update_callback is not None:
                         update_callback(msg)
                         time.sleep(0.001)
+                if not has_user:
+                    row[USER_FIELD] = None
                 if not has_label:
                     row[LABEL_FIELD] = None
                 if not has_gps_valid:
@@ -436,6 +491,8 @@ class FullSensorData:
                 if not has_notes:
                     row[NOTE_FIELD] = None
 
+                if row[USER_FIELD] is not None:
+                    self.ann_set.add(row[USER_FIELD])
                 if row[LABEL_FIELD] is not None:
                     self.ann_set.add(row[LABEL_FIELD])
                     # print(str(row['stamp']), row[LABEL_FIELD])
