@@ -428,11 +428,22 @@ class SmartWatchVisualizer:
             self.canvas.flush_events()
             self.canvas2.draw_idle()
             self.canvas2.flush_events()
-            lbl_data = self.data.get_given_label_text(
-                data_window=self.data_windows.list[self.data_windows.index])
-            self.lbl_liststore.clear()
-            for row in lbl_data:
-                self.lbl_liststore.append(row)
+            # If the show labels button is active then update the contents.
+            if self.label_toggle_button.get_active():
+                if self.lbl_liststore is not None:
+                    lbl_data = self.data.get_given_label_text(
+                        data_window=self.data_windows.list[self.data_windows.index])
+                    self.lbl_liststore.clear()
+                    for row in lbl_data:
+                        self.lbl_liststore.append(row)
+            # If the show notes button is active then update the contents.
+            if self.note_list_toggle_button.get_active():
+                if self.note_liststore is not None:
+                    note_data = self.data.get_given_note_text(
+                        data_window=self.data_windows.list[self.data_windows.index])
+                    self.note_liststore.clear()
+                    for row in note_data:
+                        self.note_liststore.append(row)
         else:
             if self.data.has_data():
                 self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
@@ -470,10 +481,20 @@ class SmartWatchVisualizer:
                                        axis4=self.axes4)
                 self.canvas2.draw_idle()
                 self.canvas2.flush_events()
-                lbl_data = self.data.get_label_text()
-                self.lbl_liststore.clear()
-                for row in lbl_data:
-                    self.lbl_liststore.append(row)
+                # If the show labels button is active then update the contents.
+                if self.label_toggle_button.get_active():
+                    if self.lbl_liststore is not None:
+                        lbl_data = self.data.get_label_text()
+                        self.lbl_liststore.clear()
+                        for row in lbl_data:
+                            self.lbl_liststore.append(row)
+                # If the show notes button is active then we shall render those too.
+                if self.note_list_toggle_button.get_active():
+                    if self.note_liststore is not None:
+                        note_data = self.data.get_note_text()
+                        self.note_liststore.clear()
+                        for row in note_data:
+                            self.note_liststore.append(row)
         self.pop_status_message(context_id=1)
         return
 
@@ -606,6 +627,8 @@ class SmartWatchVisualizer:
         elif self.STATE == MODE_GPS_VISUALIZATION:
             self.hbox1.show()
             self.add_note_button.hide()
+            self.note_list_toggle_button.hide()
+            self.label_toggle_button.hide()
             self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
@@ -626,6 +649,8 @@ class SmartWatchVisualizer:
         elif self.STATE == MODE_LOAD_GPS_CACHE:
             self.hbox1.hide()
             self.add_note_button.hide()
+            self.note_list_toggle_button.hide()
+            self.label_toggle_button.hide()
             self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
@@ -643,6 +668,8 @@ class SmartWatchVisualizer:
         elif self.STATE == MODE_SENSOR_VISUALIZATION:
             self.hbox1.show()
             self.add_note_button.show()
+            self.note_list_toggle_button.show()
+            self.label_toggle_button.show()
             self.gps_toggle_button.show()
             self.eventbox.show()
             self.spinner.stop()
@@ -666,6 +693,8 @@ class SmartWatchVisualizer:
         elif self.STATE == MODE_ANNOTATION_HELP:
             self.hbox1.show()
             self.add_note_button.hide()
+            self.note_list_toggle_button.show()
+            self.label_toggle_button.show()
             self.gps_toggle_button.hide()
             self.eventbox.show()
             self.spinner.stop()
@@ -698,6 +727,9 @@ class SmartWatchVisualizer:
             self.mode_gps_item.set_sensitive(False)
             self.mode_sensor_item.set_sensitive(False)
             self.mode_annotation_item.set_sensitive(False)
+        # Run the toggled state functions for the two window buttons to get their state aligned.
+        self.on_label_button_toggled(0, 0)
+        self.on_note_list_button_toggled(0, 0)
         return
 
     def on_mode_toggled(self, widget, mode):
@@ -711,6 +743,8 @@ class SmartWatchVisualizer:
                     self.update_visible_state()
                     if self.labels_win is not None:
                         self.labels_win.hide()
+                    if self.note_list_win is not None:
+                        self.note_list_win.hide()
             elif mode == MODE_SENSOR_VISUALIZATION:
                 if self.data.has_sensors_data():
                     # Go ahead and set to sensors mode.
@@ -726,15 +760,14 @@ class SmartWatchVisualizer:
                     # self.timer = GLib.timeout_add(100, self.timer_tick)
                     self.need_redraw = True
                     self.build_data_windows()
+                    if self.note_list_win is not None:
+                        self.note_list_win.hide()
             if mode in [MODE_SENSOR_VISUALIZATION, MODE_ANNOTATION_HELP]:
                 if self.labels_win is None:
-                    self.labels_win = Gtk.Window(destroy_with_parent=True,
-                                                 title='Labels')
-                    self.labels_win.add(self.scrolled_win)
-                    self.labels_win.show_all()
+                    self.build_labels_window()
                 else:
                     self.labels_win.show_all()
-                self.labels_win.connect('key-press-event', self.on_key_press_event)
+
             self.update_visible_state()
             GLib.idle_add(self.set_all_lbl_progress)
             GLib.idle_add(self.draw_canvas)
@@ -748,12 +781,93 @@ class SmartWatchVisualizer:
                 self.canvas.hide()
         return
 
+    def build_labels_window(self):
+        if self.labels_win is None:
+            self.labels_win = Gtk.Window(transient_for=self.window,
+                                         destroy_with_parent=True,
+                                         title='Labels')
+            self.labels_win.set_default_size(width=350, height=500)
+            self.labels_win.set_deletable(False)
+            self.lbl_liststore = Gtk.ListStore(str, str, str)
+            lbl_data = self.data.get_label_text()
+            for row in lbl_data:
+                self.lbl_liststore.append(row)
+            self.lbl_treeview = Gtk.TreeView(model=self.lbl_liststore)
+            for i, column_title in enumerate(['Timestamp', 'Annotation', 'User-Label']):
+                renderer = Gtk.CellRendererText()
+                column = Gtk.TreeViewColumn(column_title, renderer, text=i)
+                self.lbl_treeview.append_column(column)
+            self.scrolled_win = Gtk.ScrolledWindow()
+            self.scrolled_win.set_vexpand(True)
+            self.scrolled_win.set_hexpand(True)
+            self.scrolled_win.add(self.lbl_treeview)
+            self.labels_win.add(self.scrolled_win)
+            self.labels_win.connect('key-press-event', self.on_key_press_event)
+            self.labels_win.show_all()
+        return
+
+    def on_label_button_toggled(self, widget, mode):
+        if self.STATE in [MODE_SENSOR_VISUALIZATION, MODE_ANNOTATION_HELP]:
+            if self.label_toggle_button.get_active():
+                if self.labels_win is None:
+                    self.build_labels_window()
+                else:
+                    self.labels_win.show_all()
+                GLib.idle_add(self.draw_canvas)
+            else:
+                if self.labels_win is not None:
+                    self.labels_win.hide()
+        else:
+            if self.labels_win is not None:
+                self.labels_win.hide()
+        return
+
+    def build_notes_window(self):
+        if self.note_list_win is None:
+            self.note_list_win = Gtk.Window(transient_for=self.window,
+                                            destroy_with_parent=True,
+                                            title='Notes')
+            self.note_list_win.set_default_size(width=300, height=400)
+            self.note_list_win.set_deletable(False)
+            self.note_liststore = Gtk.ListStore(str, str)
+            note_data = self.data.get_note_text()
+            for row in note_data:
+                self.note_liststore.append(row)
+            self.note_treeview = Gtk.TreeView(model=self.note_liststore)
+            for i, column_title in enumerate(['Timestamp', 'Notes']):
+                renderer = Gtk.CellRendererText()
+                column = Gtk.TreeViewColumn(column_title, renderer, text=i)
+                self.note_treeview.append_column(column)
+            self.note_scrolled_win = Gtk.ScrolledWindow()
+            self.note_scrolled_win.set_vexpand(True)
+            self.note_scrolled_win.set_hexpand(True)
+            self.note_scrolled_win.add(self.note_treeview)
+            self.note_list_win.add(self.note_scrolled_win)
+            self.note_list_win.connect('key-press-event', self.on_key_press_event)
+            self.note_list_win.show_all()
+        return
+
+    def on_note_list_button_toggled(self, widget, mode):
+        if self.STATE in [MODE_SENSOR_VISUALIZATION, MODE_ANNOTATION_HELP]:
+            if self.note_list_toggle_button.get_active():
+                if self.note_list_win is None:
+                    self.build_notes_window()
+                else:
+                    self.note_list_win.show_all()
+                GLib.idle_add(self.draw_canvas)
+            else:
+                if self.note_list_win is not None:
+                    self.note_list_win.hide()
+        else:
+            if self.note_list_win is not None:
+                self.note_list_win.hide()
+        return
+
     def cb_add_note_button(self, widget):
         if self.note_win is not None:
             self.note_win.hide()
             self.note_win = None
 
-        print('add note button clicked')
         self.note_win = Gtk.Window(transient_for=self.window,
                                    destroy_with_parent=True,
                                    title='Add Note')
@@ -789,6 +903,7 @@ class SmartWatchVisualizer:
             if not self.data_modified:
                 self.data_modified = True
                 GLib.idle_add(self.set_modified_title)
+            GLib.idle_add(self.draw_canvas)
         return
 
     def build_data_windows(self):
@@ -872,20 +987,17 @@ class SmartWatchVisualizer:
         #                            destroy_with_parent=True,
         #                            title='Edit Settings')
         self.labels_win = None
+        self.note_list_win = None
         self.note_win = None
         self.note_text = None
-        self.lbl_liststore = Gtk.ListStore(str, str, str)
-        self.lbl_liststore.append(list([str(datetime.datetime.now()), '', 'Other']))
-        self.lbl_treeview = Gtk.TreeView(model=self.lbl_liststore)
-        for i, column_title in enumerate(['Timestamp', 'Annotation', 'User-Label']):
-            renderer = Gtk.CellRendererText()
-            column = Gtk.TreeViewColumn(column_title, renderer, text=i)
-            self.lbl_treeview.append_column(column)
-        self.lbl_labels = Gtk.Label(label='Label Window')
-        self.lbl_labels.set_justify(Gtk.Justification.LEFT)
-        self.scrolled_win = Gtk.ScrolledWindow()
-        self.scrolled_win.set_vexpand(True)
-        self.scrolled_win.add(self.lbl_treeview)
+        # Objects for the notes window.
+        self.note_liststore = None
+        self.note_treeview = None
+        self.note_scrolled_win = None
+        # Objects for the label window.
+        self.lbl_liststore = None
+        self.lbl_treeview = None
+        self.scrolled_win = None
 
         # Create boxes for packing self.window.
         self.vbox1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,
@@ -961,11 +1073,17 @@ class SmartWatchVisualizer:
         self.lbl_progress_end.set_justify(Gtk.Justification.RIGHT)
         self.gps_toggle_button = Gtk.ToggleButton(label='GPS')
         self.gps_toggle_button.set_active(True)
+        self.label_toggle_button = Gtk.ToggleButton(label='Labels')
+        self.label_toggle_button.set_active(False)
+        self.note_list_toggle_button = Gtk.ToggleButton(label='Notes')
+        self.note_list_toggle_button.set_active(False)
 
         self.hbox1.pack_start(self.add_note_button, False, True, 0)
         self.hbox1.pack_start(self.lbl_progress_start, True, True, 0)
         self.hbox1.pack_start(self.lbl_progress_current, True, True, 0)
         self.hbox1.pack_start(self.lbl_progress_end, True, True, 0)
+        self.hbox1.pack_start(self.note_list_toggle_button, False, True, 0)
+        self.hbox1.pack_start(self.label_toggle_button, False, True, 0)
         self.hbox1.pack_start(self.gps_toggle_button, False, True, 0)
 
         self.progress = Gtk.ProgressBar()
@@ -1019,6 +1137,8 @@ class SmartWatchVisualizer:
         self.eventbox.connect('button-press-event', self.on_button_pressed_progress)
         self.add_note_button.connect('clicked', self.cb_add_note_button)
         self.gps_toggle_button.connect('toggled', self.on_gps_button_toggled, 'GPS')
+        self.label_toggle_button.connect('toggled', self.on_label_button_toggled, 'Labels')
+        self.note_list_toggle_button.connect('toggled', self.on_note_list_button_toggled, 'Notes')
         self.window.show_all()
         self.update_visible_state()
         return
