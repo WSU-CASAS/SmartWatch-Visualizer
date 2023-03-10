@@ -428,8 +428,11 @@ class SmartWatchVisualizer:
             self.canvas.flush_events()
             self.canvas2.draw_idle()
             self.canvas2.flush_events()
-            self.lbl_labels.set_text(self.data.get_given_label_text(
-                data_window=self.data_windows.list[self.data_windows.index]))
+            lbl_data = self.data.get_given_label_text(
+                data_window=self.data_windows.list[self.data_windows.index])
+            self.lbl_liststore.clear()
+            for row in lbl_data:
+                self.lbl_liststore.append(row)
         else:
             if self.data.has_data():
                 self.progress.set_fraction(float(self.data.index())/float(self.data.data_size()))
@@ -467,7 +470,10 @@ class SmartWatchVisualizer:
                                        axis4=self.axes4)
                 self.canvas2.draw_idle()
                 self.canvas2.flush_events()
-                self.lbl_labels.set_text(self.data.get_label_text())
+                lbl_data = self.data.get_label_text()
+                self.lbl_liststore.clear()
+                for row in lbl_data:
+                    self.lbl_liststore.append(row)
         self.pop_status_message(context_id=1)
         return
 
@@ -862,10 +868,18 @@ class SmartWatchVisualizer:
         self.labels_win = None
         self.note_win = None
         self.note_text = None
+        self.lbl_liststore = Gtk.ListStore(str, str, str)
+        self.lbl_liststore.append(list([str(datetime.datetime.now()), '', 'Other']))
+        self.lbl_treeview = Gtk.TreeView(model=self.lbl_liststore)
+        for i, column_title in enumerate(['Timestamp', 'Annotation', 'User-Label']):
+            renderer = Gtk.CellRendererText()
+            column = Gtk.TreeViewColumn(column_title, renderer, text=i)
+            self.lbl_treeview.append_column(column)
         self.lbl_labels = Gtk.Label(label='Label Window')
         self.lbl_labels.set_justify(Gtk.Justification.LEFT)
         self.scrolled_win = Gtk.ScrolledWindow()
-        self.scrolled_win.add(self.lbl_labels)
+        self.scrolled_win.set_vexpand(True)
+        self.scrolled_win.add(self.lbl_treeview)
 
         # Create boxes for packing self.window.
         self.vbox1 = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,

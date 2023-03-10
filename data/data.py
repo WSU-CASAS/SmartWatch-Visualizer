@@ -172,25 +172,23 @@ class FullSensorData:
         return
 
     @staticmethod
-    def build_string_line(stamp: datetime.datetime, label: str, user_label: str) -> str:
-        msg = ''
+    def build_string_line(stamp: datetime.datetime, label: str, user_label: str) -> list:
         if label is None:
             label = ''
         if user_label is None:
             user_label = ''
-        msg = '{:30}  {:20} ({})\n'.format(str(stamp), label, user_label)
+        msg = list([str(stamp), label, user_label])
         return msg
 
-    def get_label_text(self) -> str:
-        msg = ''
+    def get_label_text(self) -> list:
         labels = list()
         i = self.index + self.sensor_window - 1
         label = self.build_string_line(stamp=self.sensor_data[i]['stamp'],
                                        label=self.sensor_data[i][LABEL_FIELD],
                                        user_label=self.sensor_data[i][USER_FIELD])
-        label = '> ' + label
+        label[0] = '> ' + label[0]
         labels.append(label)
-        labels.append('\n')
+        labels.append(list(['', '', '']))
         current_label = str(self.sensor_data[i][LABEL_FIELD])
         current_user = str(self.sensor_data[i][USER_FIELD])
         added_dots = False
@@ -215,12 +213,12 @@ class FullSensorData:
                 added_dots = False
             elif not added_dots:
                 added_dots = True
-                labels.append('    ...    \n')
+                labels.append(list(['', '...', '']))
             i -= 1
 
         i = self.index + self.sensor_window - 1
         labels.reverse()
-        labels.append('\n')
+        labels.append(list(['', '', '']))
         current_label = str(self.sensor_data[i][LABEL_FIELD])
         current_user = str(self.sensor_data[i][USER_FIELD])
         added_dots = False
@@ -245,57 +243,83 @@ class FullSensorData:
                 added_dots = False
             elif not added_dots:
                 added_dots = True
-                labels.append('    ...    \n')
+                labels.append(list(['', '...', '']))
             i += 1
 
-        for line in labels:
-            msg += line
-        return msg
+        return labels
 
-    def get_given_label_text(self, data_window: SingleDataWindow) -> str:
-        msg = ''
+    def get_given_label_text(self, data_window: SingleDataWindow) -> list:
         labels = list()
         i = data_window.i_start
-        labels.append('> {}  {}\n'.format(str(self.sensor_data[i]['stamp']),
-                                          self.sensor_data[i][LABEL_FIELD]))
-        labels.append('\n')
+        label = self.build_string_line(stamp=self.sensor_data[i]['stamp'],
+                                       label=self.sensor_data[i][LABEL_FIELD],
+                                       user_label=self.sensor_data[i][USER_FIELD])
+        label[0] = '> ' + label[0]
+        labels.append(label)
+        labels.append(list(['', '', '']))
         current_label = str(self.sensor_data[i][LABEL_FIELD])
+        current_user = str(self.sensor_data[i][USER_FIELD])
         added_dots = False
         while i > 0 and len(labels) < 10:
-            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
-                label = self.sensor_data[i][LABEL_FIELD]
-                if label is None:
-                    label = ''
-                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
+                    or str(self.sensor_data[i][USER_FIELD]) != current_user:
+                skip_label = False
+                # If the current labels are None and the last annotation label was None,
+                # then go ahead and skip adding this line (the last line was an isolated
+                # user label instance).
+                if self.sensor_data[i][LABEL_FIELD] is None \
+                        and self.sensor_data[i][USER_FIELD] is None \
+                        and current_label == str(None):
+                    skip_label = True
+                if not skip_label:
+                    labels.append(self.build_string_line(
+                        stamp=self.sensor_data[i]['stamp'],
+                        label=self.sensor_data[i][LABEL_FIELD],
+                        user_label=self.sensor_data[i][USER_FIELD]))
                 current_label = str(self.sensor_data[i][LABEL_FIELD])
+                current_user = str(self.sensor_data[i][USER_FIELD])
                 added_dots = False
             elif not added_dots:
                 added_dots = True
-                labels.append('    ...    \n')
+                labels.append(list(['', '...', '']))
             i -= 1
 
         labels.reverse()
         i = data_window.i_last
-        labels.append('> {}  {}\n'.format(str(self.sensor_data[i]['stamp']),
-                                          self.sensor_data[i][LABEL_FIELD]))
-        labels.append('\n')
+        label = self.build_string_line(stamp=self.sensor_data[i]['stamp'],
+                                       label=self.sensor_data[i][LABEL_FIELD],
+                                       user_label=self.sensor_data[i][USER_FIELD])
+        label[0] = '> ' + label[0]
+        labels.append(label)
+        labels.append(list(['', '', '']))
+        current_label = str(self.sensor_data[i][LABEL_FIELD])
+        current_user = str(self.sensor_data[i][USER_FIELD])
         added_dots = False
         while i < self.data_size and len(labels) < 20:
-            if str(self.sensor_data[i][LABEL_FIELD]) != current_label:
-                label = self.sensor_data[i][LABEL_FIELD]
-                if label is None:
-                    label = ''
-                labels.append('{}  {}\n'.format(str(self.sensor_data[i]['stamp']), label))
+            if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
+                    or str(self.sensor_data[i][USER_FIELD]) != current_user:
+                skip_label = False
+                # If the current labels are None and the last annotation label was None,
+                # then go ahead and skip adding this line (the last line was an isolated
+                # user label instance).
+                if self.sensor_data[i][LABEL_FIELD] is None \
+                        and self.sensor_data[i][USER_FIELD] is None \
+                        and current_label == str(None):
+                    skip_label = True
+                if not skip_label:
+                    labels.append(self.build_string_line(
+                        stamp=self.sensor_data[i]['stamp'],
+                        label=self.sensor_data[i][LABEL_FIELD],
+                        user_label=self.sensor_data[i][USER_FIELD]))
                 current_label = str(self.sensor_data[i][LABEL_FIELD])
+                current_user = str(self.sensor_data[i][USER_FIELD])
                 added_dots = False
             elif not added_dots:
                 added_dots = True
-                labels.append('    ...    \n')
+                labels.append(list(['', '...', '']))
             i += 1
 
-        for line in labels:
-            msg += line
-        return msg
+        return labels
 
     def plot_given_window(self, data_window: SingleDataWindow, axis1, axis2, axis3, axis4):
         # Save the current settings to restore after plotting.

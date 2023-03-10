@@ -168,14 +168,14 @@ class WatchData:
             self.full_data.add_note(msg=msg)
         return
 
-    def get_label_text(self) -> str:
-        msg = '...'
+    def get_label_text(self) -> list:
+        msg = list([['', '...', '']])
         if self.mode == MODE_SENSORS and self.has_sensors_data():
             msg = self.full_data.get_label_text()
         return msg
 
-    def get_given_label_text(self, data_window: SingleDataWindow) -> str:
-        msg = '...'
+    def get_given_label_text(self, data_window: SingleDataWindow) -> list:
+        msg = list([['', '...', '']])
         if self.mode == MODE_SENSORS and self.has_sensors_data():
             msg = self.full_data.get_given_label_text(data_window=data_window)
         return msg
