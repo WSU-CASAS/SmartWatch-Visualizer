@@ -391,6 +391,29 @@ class FullSensorData:
                     batt_x.append(j)
                     batt_y.append(-0.5)
                     batt_found = True
+        # Clear some points to draw if window sizes get big.
+        if self.sensor_window > 300:
+            if len(note_x) > 10:
+                rm_list = list(range((len(note_x) - 1), 0, -2))
+                for i in rm_list:
+                    del note_x[i]
+                    del note_y[i]
+            if len(batt_x) > 10:
+                rm_list = list(range((len(batt_x) - 1), 0, -2))
+                for i in rm_list:
+                    del batt_x[i]
+                    del batt_y[i]
+        if self.sensor_window > 900:
+            if len(note_x) > 10:
+                rm_list = list(range((len(note_x) - 1), 0, -2))
+                for i in rm_list:
+                    del note_x[i]
+                    del note_y[i]
+            if len(batt_x) > 10:
+                rm_list = list(range((len(batt_x) - 1), 0, -2))
+                for i in rm_list:
+                    del batt_x[i]
+                    del batt_y[i]
         axis1.scatter(x, np.array(zero), color='white', marker='.')
         if ann_found:
             axis1.scatter(ann_x, ann_y, s=80, c=ann_color, marker='|')
