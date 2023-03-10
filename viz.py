@@ -564,6 +564,12 @@ class SmartWatchVisualizer:
                     self.data_modified = True
                     GLib.idle_add(self.set_modified_title)
                 self.need_redraw = True
+            elif event.string == self.config.remove_annotation_key:
+                self.data.remove_window_annotation()
+                if not self.data_modified:
+                    self.data_modified = True
+                    GLib.idle_add(self.set_modified_title)
+                self.need_redraw = True
         return True
 
     def update_visible_state(self):

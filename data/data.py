@@ -163,12 +163,24 @@ class FullSensorData:
         self.update_ann_list()
         return
 
+    def remove_window_annotation(self):
+        self.data_has_changed = True
+        for i in range(self.index, self.index + self.sensor_window):
+            self.sensor_data[i][LABEL_FIELD] = None
+        return
+
+    def remove_given_window_annotation(self, data_window: SingleDataWindow):
+        self.data_has_changed = True
+        for i in range(data_window.i_start, data_window.i_last + 1):
+            self.sensor_data[i][LABEL_FIELD] = None
+        return
+
     def add_note(self, msg: str):
         self.data_has_changed = True
-        i = self.index + self.sensor_window - 1
-        self.sensor_data[i][NOTE_FIELD] = msg
         if msg == '':
-            self.sensor_data[i][NOTE_FIELD] = None
+            msg = None
+        for i in range(self.index, self.index + self.sensor_window):
+            self.sensor_data[i][NOTE_FIELD] = msg
         return
 
     @staticmethod

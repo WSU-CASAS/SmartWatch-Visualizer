@@ -27,6 +27,7 @@ DEFAULT_GPS_WIN_SIZE_ADJ = 1
 DEFAULT_SEN_WINDOW_SIZE = 500
 DEFAULT_SEN_STEP_DELTA = 10
 DEFAULT_SEN_WIN_SIZE_ADJ = 10
+DEFAULT_REMOVE_ANNOTATION_KEY = 'R'
 
 
 class VizConfig:
@@ -35,6 +36,7 @@ class VizConfig:
         self.config.add_section(section='gps')
         self.config.add_section(section='graphs')
         self.config.add_section(section='annotations')
+        self.config.add_section(section='special')
         self.filename = None
         self.gps_valid = DEFAULT_GPS_VALID
         self.gps_invalid = DEFAULT_GPS_INVALID
@@ -45,6 +47,7 @@ class VizConfig:
         self.sensors_window_size = DEFAULT_SEN_WINDOW_SIZE
         self.sensors_step_delta_rate = DEFAULT_SEN_STEP_DELTA
         self.sensors_win_size_adj_rate = DEFAULT_SEN_WIN_SIZE_ADJ
+        self.remove_annotation_key = DEFAULT_REMOVE_ANNOTATION_KEY
         return
 
     def set(self, group: str, item: str, value: str):
@@ -72,6 +75,15 @@ class VizConfig:
         if 'annotations' in self.config.sections():
             for key in list(self.config['annotations'].keys()):
                 self.annotations[key] = self.config['annotations'][key]
+        if 'special' in self.config.sections():
+            self.remove_annotation_key = self.config.get(section='special',
+                                                         option='key_to_remove_annotations',
+                                                         fallback=DEFAULT_REMOVE_ANNOTATION_KEY)
+            if self.remove_annotation_key in self.annotations:
+                raise ValueError('\nERROR:  The key_to_remove_annotations value is the same as '
+                                 'one of the annotation keys!  This must be a different key than '
+                                 'one of the annotation keys, please change it to a different '
+                                 'value in config.conf and try again.\n')
         # Load the window configs.
         self.gps_window_size = self.config.getint(section='graphs',
                                                   option='gps_window_size',

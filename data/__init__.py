@@ -163,6 +163,15 @@ class WatchData:
         self.full_data.annotate_given_window(data_window=data_window)
         return
 
+    def remove_window_annotation(self):
+        if self.mode == MODE_SENSORS:
+            self.full_data.remove_window_annotation()
+        return
+
+    def remove_given_window_annotation(self, data_window: SingleDataWindow):
+        self.full_data.remove_given_window_annotation(data_window=data_window)
+        return
+
     def add_note(self, msg: str):
         if self.mode == MODE_SENSORS and self.has_sensors_data():
             self.full_data.add_note(msg=msg)
