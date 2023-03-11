@@ -22,6 +22,7 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Gio, GObject
+import copy
 import datetime
 import random
 import threading
@@ -506,6 +507,14 @@ class SmartWatchVisualizer:
         if self.need_redraw:
             self.draw_canvas_next()
             self.need_redraw = False
+            self.had_extra_redraw = False
+        elif abs(datetime.datetime.now() - self.stamp_last_key) < self.timer_redraw_delta \
+                and len(self.last_key_presses) > 5 and not self.had_extra_redraw:
+            # If the last key press was within the time_redraw_delta seconds AND the number
+            # of last key presses is greater than 5 then we need an extra redraw here.
+            # The self.had_extra_redraw lets us only run this once after some extra key presses.
+            self.draw_canvas_next()
+            self.had_extra_redraw = True
         return response
 
     def on_button_pressed_progress(self, widget, event):
@@ -530,6 +539,7 @@ class SmartWatchVisualizer:
                 GLib.idle_add(self.set_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
+                    self.update_last_key_presses()
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65363:     # Right
@@ -543,6 +553,7 @@ class SmartWatchVisualizer:
                 GLib.idle_add(self.set_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
+                    self.update_last_key_presses()
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65362:     # Up
@@ -552,6 +563,7 @@ class SmartWatchVisualizer:
                 GLib.idle_add(self.set_first_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
+                    self.update_last_key_presses()
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif event.keyval == 65364:     # Down
@@ -561,6 +573,7 @@ class SmartWatchVisualizer:
                 GLib.idle_add(self.set_first_current_lbl_progress)
                 if self.STATE == MODE_SENSOR_VISUALIZATION:
                     self.need_redraw = True
+                    self.update_last_key_presses()
                 else:
                     GLib.idle_add(self.draw_canvas)
         elif self.STATE == MODE_GPS_VISUALIZATION:
@@ -592,6 +605,14 @@ class SmartWatchVisualizer:
                     GLib.idle_add(self.set_modified_title)
                 self.need_redraw = True
         return True
+
+    def update_last_key_presses(self):
+        self.stamp_last_key = datetime.datetime.now()
+        self.last_key_presses.append(copy.deepcopy(self.stamp_last_key))
+        for i in list(range((len(self.last_key_presses) - 1), -1, -1)):
+            if abs(self.stamp_last_key - self.last_key_presses[i]) > self.timer_redraw_delta:
+                del self.last_key_presses[i]
+        return
 
     def update_visible_state(self):
         if self.STATE == MODE_FIRST_WINDOW:
@@ -750,7 +771,7 @@ class SmartWatchVisualizer:
                     # Go ahead and set to sensors mode.
                     self.STATE = mode
                     self.data.set_mode(mode=MODE_SENSORS)
-                    self.timer = GLib.timeout_add(100, self.timer_tick)
+                    self.timer = GLib.timeout_add(50, self.timer_tick)
                     self.need_redraw = True
             elif mode == MODE_ANNOTATION_HELP:
                 if self.data.has_sensors_data():
@@ -777,6 +798,7 @@ class SmartWatchVisualizer:
         if self.STATE == MODE_SENSOR_VISUALIZATION:
             if self.gps_toggle_button.get_active():
                 self.canvas.show()
+                GLib.idle_add(self.draw_canvas)
             else:
                 self.canvas.hide()
         return
@@ -953,12 +975,16 @@ class SmartWatchVisualizer:
         self.data.full_data.color_map = list(COLORS)
         self.opened_filename = None
         self.need_redraw = False
+        self.had_extra_redraw = False
         self.timer = None
         self.gps_timer = None
         self.data_windows = DataWindowList()
         self.gps_cache_loaded = False
         self.previous_state = self.STATE
         self.backup_values = dict()
+        self.stamp_last_key = datetime.datetime.now()
+        self.timer_redraw_delta = datetime.timedelta(seconds=2.0)
+        self.last_key_presses = list()
 
         self.title_clean = 'Smart Watch Visualizer'
         self.title_modified = '* Smart Watch Visualizer (file modified)'
