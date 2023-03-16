@@ -39,8 +39,8 @@ LABEL_FIELD = 'activity_label'
 NOTE_FIELD = 'notes'
 BATTERY_FIELD = 'battery_state'
 BATTERY_CHARGING = 'charging'
-MAX_LABELS_SEARCH_DELTA = datetime.timedelta(minutes=60)
-MAX_NOTES_SEARCH_DELTA = datetime.timedelta(minutes=60)
+DEFAULT_LABEL_SEARCH_DELTA = 60
+DEFAULT_NOTES_SEARCH_DELTA = 60
 
 
 class FullSensorData:
@@ -68,12 +68,16 @@ class FullSensorData:
         self.ann_y = dict()
         self.ann_colors = dict()
         self.color_map = list()
+        self.label_search_delta = datetime.timedelta(minutes=DEFAULT_LABEL_SEARCH_DELTA)
+        self.notes_search_delta = datetime.timedelta(minutes=DEFAULT_NOTES_SEARCH_DELTA)
         return
 
     def update_config(self, wconfig: VizConfig):
         self.sensor_window = wconfig.sensors_window_size
         self.window_size_adj_rate = wconfig.sensors_win_size_adj_rate
         self.step_delta_rate = wconfig.sensors_step_delta_rate
+        self.label_search_delta = datetime.timedelta(minutes=wconfig.label_search_minutes)
+        self.notes_search_delta = datetime.timedelta(minutes=wconfig.notes_search_minutes)
 
         # Apply critical logic to window sizes.
         self.apply_window_variable_logic()
@@ -208,7 +212,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i > 0 and len(labels) < 10 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_LABELS_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.label_search_delta:
             if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
                     or str(self.sensor_data[i][USER_FIELD]) != current_user:
                 skip_label = False
@@ -240,7 +244,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i < self.data_size and len(labels) < 20 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_LABELS_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.label_search_delta:
             if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
                     or str(self.sensor_data[i][USER_FIELD]) != current_user:
                 skip_label = False
@@ -280,7 +284,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i > 0 and len(labels) < 10 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_LABELS_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.label_search_delta:
             if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
                     or str(self.sensor_data[i][USER_FIELD]) != current_user:
                 skip_label = False
@@ -317,7 +321,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i < self.data_size and len(labels) < 20 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_LABELS_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.label_search_delta:
             if str(self.sensor_data[i][LABEL_FIELD]) != current_label \
                     or str(self.sensor_data[i][USER_FIELD]) != current_user:
                 skip_label = False
@@ -362,7 +366,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i > 0 and len(notes) < 10 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_NOTES_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.notes_search_delta:
             if str(self.sensor_data[i][NOTE_FIELD]) != current_note:
                 notes.append(self.build_note_line(stamp=self.sensor_data[i]['stamp'],
                                                   note=self.sensor_data[i][NOTE_FIELD]))
@@ -380,7 +384,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i < self.data_size and len(notes) < 20 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_NOTES_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.notes_search_delta:
             if str(self.sensor_data[i][NOTE_FIELD]) != current_note:
                 notes.append(self.build_note_line(stamp=self.sensor_data[i]['stamp'],
                                                   note=self.sensor_data[i][NOTE_FIELD]))
@@ -405,7 +409,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i > 0 and len(notes) < 10 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_NOTES_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.notes_search_delta:
             if str(self.sensor_data[i][NOTE_FIELD]) != current_note:
                 notes.append(self.build_note_line(stamp=self.sensor_data[i]['stamp'],
                                                   note=self.sensor_data[i][NOTE_FIELD]))
@@ -427,7 +431,7 @@ class FullSensorData:
         start_stamp = copy.deepcopy(self.sensor_data[i]['stamp'])
         added_dots = False
         while i < self.data_size and len(notes) < 20 and \
-                abs(self.sensor_data[i]['stamp'] - start_stamp) < MAX_NOTES_SEARCH_DELTA:
+                abs(self.sensor_data[i]['stamp'] - start_stamp) < self.notes_search_delta:
             if str(self.sensor_data[i][NOTE_FIELD]) != current_note:
                 notes.append(self.build_note_line(stamp=self.sensor_data[i]['stamp'],
                                                   note=self.sensor_data[i][NOTE_FIELD]))

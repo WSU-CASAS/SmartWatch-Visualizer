@@ -28,6 +28,8 @@ DEFAULT_SEN_WINDOW_SIZE = 500
 DEFAULT_SEN_STEP_DELTA = 10
 DEFAULT_SEN_WIN_SIZE_ADJ = 10
 DEFAULT_REMOVE_ANNOTATION_KEY = 'R'
+DEFAULT_LABEL_SEARCH_MINUTES = 60
+DEFAULT_NOTES_SEARCH_MINUTES = 60
 
 
 class VizConfig:
@@ -48,6 +50,8 @@ class VizConfig:
         self.sensors_step_delta_rate = DEFAULT_SEN_STEP_DELTA
         self.sensors_win_size_adj_rate = DEFAULT_SEN_WIN_SIZE_ADJ
         self.remove_annotation_key = DEFAULT_REMOVE_ANNOTATION_KEY
+        self.label_search_minutes = DEFAULT_LABEL_SEARCH_MINUTES
+        self.notes_search_minutes = DEFAULT_NOTES_SEARCH_MINUTES
         return
 
     def set(self, group: str, item: str, value: str):
@@ -103,6 +107,12 @@ class VizConfig:
         self.sensors_win_size_adj_rate = self.config.getint(section='graphs',
                                                             option='sensors_win_size_adj_rate',
                                                             fallback=DEFAULT_SEN_WIN_SIZE_ADJ)
+        self.label_search_minutes = self.config.getint(section='graphs',
+                                                       option='label_search_minutes',
+                                                       fallback=DEFAULT_LABEL_SEARCH_MINUTES)
+        self.notes_search_minutes = self.config.getint(section='graphs',
+                                                       option='notes_search_minutes',
+                                                       fallback=DEFAULT_NOTES_SEARCH_MINUTES)
         return
 
     def save_config(self, filename: str = None):
@@ -125,6 +135,12 @@ class VizConfig:
         self.config.set(section='graphs',
                         option='sensors_win_size_adj_rate',
                         value=str(self.sensors_win_size_adj_rate))
+        self.config.set(section='graphs',
+                        option='label_search_minutes',
+                        value=str(self.label_search_minutes))
+        self.config.set(section='graphs',
+                        option='notes_search_minutes',
+                        value=str(self.notes_search_minutes))
         # Set the labeling values.
         self.config.set(section='gps', option='valid', value=self.gps_valid)
         self.config.set(section='gps', option='invalid', value=self.gps_invalid)

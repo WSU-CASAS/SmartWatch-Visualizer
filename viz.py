@@ -89,9 +89,15 @@ class SmartWatchVisualizer:
         graph_label.set_justify(Gtk.Justification.LEFT)
         main_box.pack_start(graph_label, True, True, 0)
         # Contents of the graph section.
-        listbox = Gtk.ListBox()
-        listbox.set_selection_mode(mode=Gtk.SelectionMode.NONE)
-        main_box.pack_start(listbox, True, True, 0)
+        listbox1 = Gtk.ListBox()
+        listbox1.set_selection_mode(mode=Gtk.SelectionMode.NONE)
+        main_box.pack_start(listbox1, True, True, 0)
+        listbox2 = Gtk.ListBox()
+        listbox2.set_selection_mode(mode=Gtk.SelectionMode.NONE)
+        main_box.pack_start(listbox2, True, True, 0)
+        listbox3 = Gtk.ListBox()
+        listbox3.set_selection_mode(mode=Gtk.SelectionMode.NONE)
+        main_box.pack_start(listbox3, True, True, 0)
 
         self.sb_gps_window_size = Gtk.SpinButton()
         self.set_spinbutton_defaults(button=self.sb_gps_window_size,
@@ -111,32 +117,49 @@ class SmartWatchVisualizer:
         self.sb_sen_win_size_adj_rate = Gtk.SpinButton()
         self.set_spinbutton_defaults(button=self.sb_sen_win_size_adj_rate,
                                      value=self.config.sensors_win_size_adj_rate)
+        self.sb_label_search_minutes = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_label_search_minutes,
+                                     value=self.config.label_search_minutes)
+        self.sb_notes_search_minutes = Gtk.SpinButton()
+        self.set_spinbutton_defaults(button=self.sb_notes_search_minutes,
+                                     value=self.config.notes_search_minutes)
 
         # Graph spinbutton entries.
+        # GPS View
         row = self.build_spinbutton_listboxrow(button=self.sb_gps_window_size,
                                                label='GPS Window Size',
                                                value=self.config.gps_window_size)
-        listbox.add(row)
+        listbox1.add(row)
         row = self.build_spinbutton_listboxrow(button=self.sb_gps_win_size_adj_rate,
                                                label='GPS Window Size Change Steps',
                                                value=self.config.gps_win_size_adj_rate)
-        listbox.add(row)
+        listbox1.add(row)
         row = self.build_spinbutton_listboxrow(button=self.sb_gps_step_delta_rate,
                                                label='GPS Left/Right Step Size',
                                                value=self.config.gps_step_delta_rate)
-        listbox.add(row)
+        listbox1.add(row)
+        # Sensors View
         row = self.build_spinbutton_listboxrow(button=self.sb_sen_window_size,
                                                label='Sensors Window Size',
                                                value=self.config.sensors_window_size)
-        listbox.add(row)
+        listbox2.add(row)
         row = self.build_spinbutton_listboxrow(button=self.sb_sen_win_size_adj_rate,
                                                label='Sensors Window Size Change Steps',
                                                value=self.config.sensors_win_size_adj_rate)
-        listbox.add(row)
+        listbox2.add(row)
         row = self.build_spinbutton_listboxrow(button=self.sb_sen_step_delta_rate,
                                                label='Sensors Left/Right Step Size',
                                                value=self.config.sensors_step_delta_rate)
-        listbox.add(row)
+        listbox2.add(row)
+        # Helper Windows
+        row = self.build_spinbutton_listboxrow(button=self.sb_label_search_minutes,
+                                               label='Labels Window Search in Minutes',
+                                               value=self.config.label_search_minutes)
+        listbox3.add(row)
+        row = self.build_spinbutton_listboxrow(button=self.sb_notes_search_minutes,
+                                               label='Notes Window Search in Minutes',
+                                               value=self.config.notes_search_minutes)
+        listbox3.add(row)
 
         # Ok/Cancel buttons at the bottom.
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=100)
@@ -164,6 +187,8 @@ class SmartWatchVisualizer:
             self.config.sensors_window_size = self.sb_sen_window_size.get_value_as_int()
             self.config.sensors_win_size_adj_rate = self.sb_sen_win_size_adj_rate.get_value_as_int()
             self.config.sensors_step_delta_rate = self.sb_sen_step_delta_rate.get_value_as_int()
+            self.config.label_search_minutes = self.sb_label_search_minutes.get_value_as_int()
+            self.config.notes_search_minutes = self.sb_notes_search_minutes.get_value_as_int()
             self.data.update_config(wconfig=self.config)
             if self.data.has_data():
                 GLib.idle_add(self.draw_canvas)
@@ -1003,6 +1028,8 @@ class SmartWatchVisualizer:
         self.sb_sen_window_size = Gtk.SpinButton()
         self.sb_sen_step_delta_rate = Gtk.SpinButton()
         self.sb_sen_win_size_adj_rate = Gtk.SpinButton()
+        self.sb_label_search_minutes = Gtk.SpinButton()
+        self.sb_notes_search_minutes = Gtk.SpinButton()
 
         # My main window.
         self.window = Gtk.ApplicationWindow(title=self.title_clean)
