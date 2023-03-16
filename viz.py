@@ -771,7 +771,7 @@ class SmartWatchVisualizer:
                     # Go ahead and set to sensors mode.
                     self.STATE = mode
                     self.data.set_mode(mode=MODE_SENSORS)
-                    self.timer = GLib.timeout_add(50, self.timer_tick)
+                    self.timer = GLib.timeout_add(100, self.timer_tick)
                     self.need_redraw = True
             elif mode == MODE_ANNOTATION_HELP:
                 if self.data.has_sensors_data():
