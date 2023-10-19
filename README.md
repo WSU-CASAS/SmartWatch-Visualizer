@@ -7,18 +7,19 @@ This was tested with Python 3.10.
 
 ### Arch Linux
 ```commandline
-pamac install python-pygobject
+pamac install python-gobject
 # pamac install python-pygobject-stubs  # Used in development.
 pamac install python-geopandas
 pamac install python-matplotlib
 pamac install python-contextily
+pamac install python-pywavelets
 ```
 
 ### Ubuntu Linux
 ```commandline
 sudo apt update
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 python3-pip
-pip3 install geopandas matplotlib contextily
+pip3 install geopandas matplotlib contextily PyWavelets
 ```
 
 ### Windows
@@ -40,7 +41,7 @@ pacman -S mingw-w64-x86_64-gtk3 mingw-w64-x86_64-python3 mingw-w64-x86_64-python
 ```
 conda config --add channels conda-forge
 conda config --set channel_priority strict
-conda create --name smartwatchviz python=3.10 gtk3=3.24.36 matplotlib=3.6.2 geopandas=0.12.2 contextily=1.2.0 pygobject=3.42.2
+conda create --name smartwatchviz python=3.10 gtk3=3.24.36 matplotlib=3.6.2 geopandas=0.12.2 contextily=1.2.0 pygobject=3.42.2 pywavelets=1.4.1
 ```
 10. Activate the `smartwatchviz` environment by running
 ```commandline
