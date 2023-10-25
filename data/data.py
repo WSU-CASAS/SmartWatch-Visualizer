@@ -26,6 +26,7 @@ import datetime
 import time
 import numpy as np
 from collections import OrderedDict
+from scipy import signal
 
 DEFAULT_SENSOR_WINDOW = 500
 DEFAULT_IS_VALID = True
@@ -551,14 +552,22 @@ class FullSensorData:
                          label='yaw/pitch/roll')
 
         # rotation_rate_x, rotation_rate_y, rotation_rate_z
-        rotation_rate_x = np.array([self.sensor_data[i]['rotation_rate_x'] for i in index_range])
-        rotation_rate_y = np.array([self.sensor_data[i]['rotation_rate_y'] for i in index_range])
-        rotation_rate_z = np.array([self.sensor_data[i]['rotation_rate_z'] for i in index_range])
-        axis3.plot(x, rotation_rate_x, label='x')
-        axis3.plot(x, rotation_rate_y, label='y')
-        axis3.plot(x, rotation_rate_z, label='z')
-        self.adjust_axes(axis=axis3,
-                         label='rotation rate')
+        # rotation_rate_x = np.array([self.sensor_data[i]['rotation_rate_x'] for i in index_range])
+        # rotation_rate_y = np.array([self.sensor_data[i]['rotation_rate_y'] for i in index_range])
+        # rotation_rate_z = np.array([self.sensor_data[i]['rotation_rate_z'] for i in index_range])
+        # axis3.plot(x, rotation_rate_x, label='x')
+        # axis3.plot(x, rotation_rate_y, label='y')
+        # axis3.plot(x, rotation_rate_z, label='z')
+        # self.adjust_axes(axis=axis3,
+        #                  label='rotation rate')
+        # Seconds
+        T = float((self.sensor_data[self.index + self.sensor_window - 1]['stamp'] -
+                   self.sensor_data[self.index]['stamp']).total_seconds())
+        # Sample rate
+        Fs = 100.0
+        user_spec_y = np.array([self.sensor_data[i]['roll'] for i in index_range])
+        axis3.specgram(user_spec_y, Fs=Fs, cmap='turbo_r')
+        axis3.autoscale_view()
 
         # user_acceleration_x, user_acceleration_y, user_acceleration_z
         user_acc_x = np.array([self.sensor_data[i]['user_acceleration_x'] for i in index_range])
